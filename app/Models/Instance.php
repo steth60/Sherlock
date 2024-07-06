@@ -9,10 +9,21 @@ class Instance extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'github_url', 'start_command', 'status', 'pid'];
+    protected $fillable = [
+        'name',
+        'github_url',
+        'start_command',
+        'description',
+        'status',
+        'pid'
+    ];
 
     public function consoleOutputs()
     {
         return $this->hasMany(ConsoleOutput::class);
+    }
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
     }
 }

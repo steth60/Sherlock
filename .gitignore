@@ -27,6 +27,12 @@ Homestead.json
 /public/hot
 /public/storage
 /storage/*.key
+<<<<<<< HEAD
+=======
+/vendor
+/instances
+.env
+>>>>>>> b44837b (Your commit message)
 .env.backup
 .env.production
 .phpactor.json

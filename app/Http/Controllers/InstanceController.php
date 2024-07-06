@@ -8,6 +8,8 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
+
 
 class InstanceController extends Controller
 {
@@ -62,20 +64,23 @@ class InstanceController extends Controller
         }
     }
 
+
     public function show(Instance $instance)
     {
+        $instance->load('schedules');
+    
         $outputFile = base_path('instances/' . $instance->id . '/output.log');
         $output = '';
-
+    
         // Check if the PID file exists and the process is running
         $pidFile = base_path('instances/' . $instance->id . '/process.pid');
         if (file_exists($pidFile)) {
             $pid = file_get_contents($pidFile);
-
+    
             $commandCheck = 'ps -p ' . $pid;
             $checkProcess = Process::fromShellCommandline($commandCheck);
             $checkProcess->run();
-
+    
             if (!$checkProcess->isSuccessful()) {
                 // Process is not running, update status to stopped
                 $instance->status = 'stopped';
@@ -89,13 +94,23 @@ class InstanceController extends Controller
             $instance->save();
             Log::warning('PID file does not exist, status set to stopped.', ['pid_file' => $pidFile]);
         }
-
+    
         if (file_exists($outputFile)) {
             $output = file_get_contents($outputFile);
         }
-
-        return view('instances.show', compact('instance', 'output'));
+        
+        $envFilePath = base_path('instances/' . $instance->id . '/.env');
+    
+        // Create .env file if it doesn't exist
+        if (!File::exists($envFilePath)) {
+            File::put($envFilePath, '');
+        }
+    
+        $envContent = File::exists($envFilePath) ? File::get($envFilePath) : '';
+    
+        return view('instances.show', compact('instance', 'output', 'envContent'));
     }
+    
 
     public function running()
     {
@@ -115,7 +130,7 @@ class InstanceController extends Controller
         return response()->json(['output' => $output]);
     }
 
-    public function start(Instance $instance)
+    public function start(Request $request, Instance $instance)
     {
         $repoPath = base_path('instances/' . $instance->id);
         $venvPath = $repoPath . '/venv/bin/';
@@ -139,13 +154,22 @@ class InstanceController extends Controller
 
             if ($process->isSuccessful()) {
                 $pid = trim($process->getOutput());
-                file_put_contents($pidFile, $pid);
-                Log::info('Process started successfully', ['pid' => $pid]);
+                Log::info('Process output', ['output' => $pid]);
 
-                // Save the PID to the database
-                $instance->pid = $pid;
-                $instance->status = 'running';
-                $instance->save();
+                if (!empty($pid)) {
+                    file_put_contents($pidFile, $pid);
+                    Log::info('PID file created successfully', ['pid_file' => $pidFile, 'pid' => $pid]);
+
+                    // Save the PID to the database
+                    $instance->pid = $pid;
+                    $instance->status = 'running';
+                    $instance->save();
+
+                    return response()->json(['status' => 'success', 'message' => 'Instance started successfully.', 'instance' => $instance]);
+                } else {
+                    Log::warning('No PID captured from process output', ['output' => $pid]);
+                    return response()->json(['status' => 'error', 'message' => 'Failed to capture PID from process output.'], 500);
+                }
             } else {
                 throw new ProcessFailedException($process);
             }
@@ -155,13 +179,11 @@ class InstanceController extends Controller
                 'output' => $exception->getProcess()->getOutput(),
                 'errorOutput' => $exception->getProcess()->getErrorOutput()
             ]);
-            return redirect()->route('instances.index')->withErrors(['error' => 'Failed to start the instance: ' . $exception->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Failed to start the instance: ' . $exception->getMessage()], 500);
         }
-
-        return redirect()->route('instances.index')->with('success', 'Instance started successfully.');
     }
 
-    public function stop(Instance $instance)
+    public function stop(Request $request, Instance $instance)
     {
         $repoPath = base_path('instances/' . $instance->id);
         $outputFile = $repoPath . '/output.log';
@@ -189,21 +211,24 @@ class InstanceController extends Controller
                     $process = Process::fromShellCommandline($command);
                     $process->mustRun();
                     Log::info('Process stopped successfully');
-                    unlink($pidFile); // Remove the PID file after stopping the process
+                    if (File::exists($pidFile)) {
+                        File::delete($pidFile); // Remove the PID file after stopping the process
+                        Log::info('PID file deleted successfully', ['pid_file' => $pidFile]);
+                    }
 
                     // Clear the PID in the database
                     $instance->pid = null;
                     $instance->status = 'stopped';
                     $instance->save();
 
-                    return redirect()->route('instances.index')->with('success', 'Instance stopped successfully.');
+                    return response()->json(['status' => 'success', 'message' => 'Instance stopped successfully.', 'instance' => $instance]);
                 } catch (ProcessFailedException $exception) {
                     Log::error('Process failed to stop', [
                         'error' => $exception->getMessage(),
                         'output' => $exception->getProcess()->getOutput(),
                         'errorOutput' => $exception->getProcess()->getErrorOutput()
                     ]);
-                    return redirect()->route('instances.index')->withErrors(['error' => 'Failed to stop the instance: ' . $exception->getMessage()]);
+                    return response()->json(['status' => 'error', 'message' => 'Failed to stop the instance: ' . $exception->getMessage()], 500);
                 }
             } else {
                 Log::warning('No such process found', ['pid' => $pid]);
@@ -213,7 +238,7 @@ class InstanceController extends Controller
                 $instance->status = 'stopped';
                 $instance->save();
 
-                return redirect()->route('instances.index')->with('success', 'Instance status updated to stopped as the process was not running.');
+                return response()->json(['status' => 'success', 'message' => 'Instance status updated to stopped as the process was not running.', 'instance' => $instance]);
             }
         } else {
             Log::warning('PID not found in database for instance', ['instance_id' => $instance->id]);
@@ -222,8 +247,19 @@ class InstanceController extends Controller
             $instance->status = 'stopped';
             $instance->save();
 
-            return redirect()->route('instances.index')->withErrors(['error' => 'Failed to stop the instance: PID not found.']);
+            return response()->json(['status' => 'error', 'message' => 'Failed to stop the instance: PID not found.'], 500);
         }
+    }
+
+    public function restart(Request $request, Instance $instance)
+    {
+        $stopResponse = $this->stop($request, $instance);
+
+        if ($stopResponse->getStatusCode() !== 200) {
+            return $stopResponse;
+        }
+
+        return $this->start($request, $instance);
     }
 
     public function delete(Instance $instance)
@@ -237,90 +273,6 @@ class InstanceController extends Controller
         $instance->delete();
 
         return redirect()->route('instances.index');
-    }
-
-    public function restart(Instance $instance)
-    {
-        $repoPath = base_path('instances/' . $instance->id);
-        $outputFile = $repoPath . '/output.log';
-        $pidFile = $repoPath . '/process.pid';
-
-        // Append the restart trigger message with timestamp
-        $restartMessage = "[" . now()->format('d/m/y H:i') . "] CONSOLE: System trigger restart\n";
-        file_put_contents($outputFile, $restartMessage, FILE_APPEND);
-
-        // Stop the script if it's running
-        if ($instance->pid) {
-            $pid = $instance->pid;
-
-            // Check if the process is running
-            $commandCheck = 'ps -p ' . $pid;
-            $checkProcess = Process::fromShellCommandline($commandCheck);
-            $checkProcess->run();
-
-            if ($checkProcess->isSuccessful()) {
-                // Use the kill command to stop the process
-                $command = 'kill ' . $pid;
-                Log::info('Stopping process for restart', ['command' => $command]);
-
-                try {
-                    $process = Process::fromShellCommandline($command);
-                    $process->mustRun();
-                    Log::info('Process stopped successfully for restart');
-                    unlink($pidFile); // Remove the PID file after stopping the process
-                } catch (ProcessFailedException $exception) {
-                    Log::error('Process failed to stop for restart', [
-                        'error' => $exception->getMessage(),
-                        'output' => $exception->getProcess()->getOutput(),
-                        'errorOutput' => $exception->getProcess()->getErrorOutput()
-                    ]);
-                    return redirect()->route('instances.index')->withErrors(['error' => 'Failed to restart the instance: ' . $exception->getMessage()]);
-                }
-            } else {
-                Log::warning('No such process found for restart', ['pid' => $pid]);
-                unlink($pidFile); // Remove the PID file if the process is not found
-            }
-        }
-
-        // Now start the script again
-        $venvPath = $repoPath . '/venv/bin/';
-        $startCommand = $instance->start_command;
-
-        // Append the start trigger message with timestamp
-        $startMessage = "[" . now()->format('d/m/y H:i') . "] CONSOLE: System trigger start\n";
-        file_put_contents($outputFile, $startMessage, FILE_APPEND);
-
-        // Build the full start command with nohup to run it in the background
-        $command = 'nohup ' . $venvPath . 'python ' . $repoPath . '/' . $startCommand . ' >> ' . $outputFile . ' 2>&1 & echo $!';
-        Log::info('Starting process for restart', ['command' => $command]);
-
-        // Run the process and capture the PID
-        try {
-            $process = Process::fromShellCommandline($command);
-            $process->run();
-
-            if ($process->isSuccessful()) {
-                $pid = trim($process->getOutput());
-                file_put_contents($pidFile, $pid);
-                Log::info('Process started successfully for restart', ['pid' => $pid]);
-
-                // Save the PID to the database
-                $instance->pid = $pid;
-                $instance->status = 'running';
-                $instance->save();
-            } else {
-                throw new ProcessFailedException($process);
-            }
-        } catch (ProcessFailedException $exception) {
-            Log::error('Process failed to start for restart', [
-                'error' => $exception->getMessage(),
-                'output' => $exception->getProcess()->getOutput(),
-                'errorOutput' => $exception->getProcess()->getErrorOutput()
-            ]);
-            return redirect()->route('instances.index')->withErrors(['error' => 'Failed to restart the instance: ' . $exception->getMessage()]);
-        }
-
-        return redirect()->route('instances.index')->with('success', 'Instance restarted successfully.');
     }
 
     private function cloneRepository(Instance $instance)
@@ -385,4 +337,107 @@ class InstanceController extends Controller
 
         return rmdir($dir);
     }
+
+    public function showUpdatePage(Instance $instance)
+    {
+        return view('instances.update', compact('instance'));
+    }
+
+    public function checkUpdates(Request $request, Instance $instance)
+    {
+        $repoPath = base_path('instances/' . $instance->id);
+
+        // Fetch updates from the remote repository
+        $process = new Process(['git', 'fetch'], $repoPath);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            return response()->json(['status' => 'error', 'message' => 'Failed to fetch updates.']);
+        }
+
+        // Check for differences
+        $process = new Process(['git', 'diff', 'HEAD..origin/main'], $repoPath);
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            $output = $process->getOutput();
+            if (empty(trim($output))) {
+                return response()->json(['status' => 'up-to-date', 'message' => 'No updates available.']);
+            } else {
+                return response()->json(['status' => 'updates-available', 'diff' => $output]);
+            }
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Failed to check for updates.']);
+        }
+    }
+
+    public function confirmUpdates(Request $request, Instance $instance)
+    {
+        $repoPath = base_path('instances/' . $instance->id);
+
+        // Pull the latest updates
+        $process = new Process(['git', 'pull'], $repoPath);
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            return response()->json(['status' => 'success', 'message' => 'Updates pulled successfully.']);
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Failed to pull updates.']);
+        }
+    }
+    public function edit(Instance $instance)
+    {
+        return view('instances.edit', compact('instance'));
+    }
+
+    public function update(Request $request, Instance $instance)
+    {
+        $validated = $request->validate([
+            'github_url' => 'required|url',
+            'start_command' => 'required',
+            'description' => 'nullable|string'
+        ]);
+
+        $instance->update($validated);
+
+        return redirect()->route('instances.show', $instance)->with('success', 'Instance updated successfully.');
+    }
+
+    public function getEnv(Instance $instance)
+    {
+        $envFilePath = base_path('instances/' . $instance->id . '/.env');
+        
+        // Create .env file if it doesn't exist
+        if (!File::exists($envFilePath)) {
+            File::put($envFilePath, '');
+        }
+
+        $envContent = File::exists($envFilePath) ? File::get($envFilePath) : '';
+
+        return view('instances.show', compact('instance', 'envContent'));
+    }
+
+    public function updateEnv(Request $request, Instance $instance)
+    {
+        $envData = $request->input('env');
+        $envFilePath = base_path('instances/' . $instance->id . '/.env');
+    
+        $envContent = '';
+        foreach ($envData as $env) {
+            if (isset($env['type']) && $env['type'] === 'variable') {
+                $key = $env['key'] ?? '';
+                $value = $env['value'] ?? '';
+                $envContent .= "{$key}={$value}\n";
+            } elseif (isset($env['type']) && $env['type'] === 'comment') {
+                $comment = $env['comment'] ?? '';
+                $envContent .= "# {$comment}\n";
+            }
+        }
+    
+        File::put($envFilePath, $envContent);
+    
+        return redirect()->route('instances.show', $instance)->with('success', 'Environment variables updated successfully.');
+    }
+    
+    
 }
