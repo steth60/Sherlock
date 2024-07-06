@@ -39,4 +39,4 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-/instances/
+instances/
