@@ -132,39 +132,40 @@ class InstanceController extends Controller
 
     public function start(Request $request, Instance $instance)
     {
+        Log::info("Instance start method called for instance: {$instance->id}");
         $repoPath = base_path('instances/' . $instance->id);
         $venvPath = $repoPath . '/venv/bin/';
         $startCommand = $instance->start_command;
-
+    
         $outputFile = $repoPath . '/output.log';
         $pidFile = $repoPath . '/process.pid';
-
+    
         // Append the start trigger message with timestamp
         $startMessage = "[" . now()->format('d/m/y H:i') . "] CONSOLE: System trigger start\n";
         file_put_contents($outputFile, $startMessage, FILE_APPEND);
-
-        // Build the full start command with nohup to run it in the background
-        $command = 'nohup ' . $venvPath . 'python ' . $repoPath . '/' . $startCommand . ' >> ' . $outputFile . ' 2>&1 & echo $!';
+    
+        // Build the full start command with setsid to create a new session and process group
+        $command = 'setsid ' . $venvPath . 'python ' . $repoPath . '/' . $startCommand . ' >> ' . $outputFile . ' 2>&1 & echo $!';
         Log::info('Starting process', ['command' => $command]);
-
+    
         // Run the process and capture the PID
         try {
             $process = Process::fromShellCommandline($command);
             $process->run();
-
+    
             if ($process->isSuccessful()) {
                 $pid = trim($process->getOutput());
                 Log::info('Process output', ['output' => $pid]);
-
+    
                 if (!empty($pid)) {
                     file_put_contents($pidFile, $pid);
                     Log::info('PID file created successfully', ['pid_file' => $pidFile, 'pid' => $pid]);
-
+    
                     // Save the PID to the database
                     $instance->pid = $pid;
                     $instance->status = 'running';
                     $instance->save();
-
+    
                     return response()->json(['status' => 'success', 'message' => 'Instance started successfully.', 'instance' => $instance]);
                 } else {
                     Log::warning('No PID captured from process output', ['output' => $pid]);
@@ -182,77 +183,97 @@ class InstanceController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Failed to start the instance: ' . $exception->getMessage()], 500);
         }
     }
-
+    
     public function stop(Request $request, Instance $instance)
     {
+        Log::info("Instance stop method called for instance: {$instance->id}");
+        Log::info('Effective User ID in stop method: ' . posix_geteuid()); // Log the user ID
+        
         $repoPath = base_path('instances/' . $instance->id);
         $outputFile = $repoPath . '/output.log';
         $pidFile = $repoPath . '/process.pid';
-
+        
         // Append the stop trigger message with timestamp
         $stopMessage = "[" . now()->format('d/m/y H:i') . "] CONSOLE: System trigger stop\n";
         file_put_contents($outputFile, $stopMessage, FILE_APPEND);
-
+        
         // Logic to stop the script
         if ($instance->pid) {
             $pid = $instance->pid;
-
+        
             // Check if the process is running
             $commandCheck = 'ps -p ' . $pid;
             $checkProcess = Process::fromShellCommandline($commandCheck);
             $checkProcess->run();
-
+        
+            Log::info("Checking process status", ['pid' => $pid, 'is_running' => $checkProcess->isSuccessful()]);
+        
             if ($checkProcess->isSuccessful()) {
-                // Use the kill command to stop the process
-                $command = 'kill ' . $pid;
-                Log::info('Stopping process', ['command' => $command]);
-
+                // Attempt to stop the process group
+                $command = 'kill -- -' . $pid;
+                Log::info('Stopping process group', ['command' => $command]);
+        
                 try {
                     $process = Process::fromShellCommandline($command);
-                    $process->mustRun();
-                    Log::info('Process stopped successfully');
-                    if (File::exists($pidFile)) {
-                        File::delete($pidFile); // Remove the PID file after stopping the process
-                        Log::info('PID file deleted successfully', ['pid_file' => $pidFile]);
+                    $process->run();
+    
+                    // Check if the process was successfully killed
+                    $commandCheckAgain = 'ps -p ' . $pid;
+                    $checkProcessAgain = Process::fromShellCommandline($commandCheckAgain);
+                    $checkProcessAgain->run();
+    
+                    if (!$checkProcessAgain->isSuccessful()) {
+                        Log::info('Process group stopped successfully');
+                    } else {
+                        Log::warning('Process still running after kill attempt');
+                        throw new ProcessFailedException($process);
                     }
-
-                    // Clear the PID in the database
-                    $instance->pid = null;
-                    $instance->status = 'stopped';
-                    $instance->save();
-
-                    return response()->json(['status' => 'success', 'message' => 'Instance stopped successfully.', 'instance' => $instance]);
                 } catch (ProcessFailedException $exception) {
-                    Log::error('Process failed to stop', [
+                    Log::error('Process group failed to stop', [
                         'error' => $exception->getMessage(),
                         'output' => $exception->getProcess()->getOutput(),
-                        'errorOutput' => $exception->getProcess()->getErrorOutput()
+                        'errorOutput' => $exception->getProcess()->getErrorOutput(),
                     ]);
                     return response()->json(['status' => 'error', 'message' => 'Failed to stop the instance: ' . $exception->getMessage()], 500);
                 }
+                
+                if (File::exists($pidFile)) {
+                    File::delete($pidFile);
+                    Log::info('PID file deleted successfully', ['pid_file' => $pidFile]);
+                }
+        
+                // Clear the PID in the database
+                $instance->pid = null;
+                $instance->status = 'stopped';
+                $instance->save();
+        
+                return response()->json(['status' => 'success', 'message' => 'Instance stopped successfully.', 'instance' => $instance]);
             } else {
                 Log::warning('No such process found', ['pid' => $pid]);
-
+        
                 // Clear the PID in the database since the process is not running
                 $instance->pid = null;
                 $instance->status = 'stopped';
                 $instance->save();
-
+        
                 return response()->json(['status' => 'success', 'message' => 'Instance status updated to stopped as the process was not running.', 'instance' => $instance]);
             }
         } else {
             Log::warning('PID not found in database for instance', ['instance_id' => $instance->id]);
-
+        
             // Update instance status to stopped since the PID is missing
             $instance->status = 'stopped';
             $instance->save();
-
+        
             return response()->json(['status' => 'error', 'message' => 'Failed to stop the instance: PID not found.'], 500);
         }
     }
+    
+    
 
     public function restart(Request $request, Instance $instance)
-    {
+    {   
+        Log::info("Instance restart method called for instance: {$instance->id}");
         $stopResponse = $this->stop($request, $instance);
 
         if ($stopResponse->getStatusCode() !== 200) {

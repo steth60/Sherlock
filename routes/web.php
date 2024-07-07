@@ -3,10 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\DashboardController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::get('/instances', [InstanceController::class, 'index'])->name('instances.index');
 Route::get('/instances/running', [InstanceController::class, 'running'])->name('instances.running');
@@ -28,6 +27,7 @@ Route::post('/instances/{instance}/env', [InstanceController::class, 'updateEnv'
 Route::get('instances/{instance}/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
 Route::post('instances/{instance}/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
 Route::get('schedules/{schedule}/edit', [ScheduleController::class, 'edit'])->name('schedules.edit');
-Route::put('schedules/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update');
-Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
+Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update');
+Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
 Route::post('schedules/{schedule}/trigger-now', [ScheduleController::class, 'triggerNow'])->name('schedules.triggerNow');
+

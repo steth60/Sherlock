@@ -10,7 +10,7 @@ class Schedule extends Model
     use HasFactory;
 
     protected $fillable = [
-        'instance_id', 'action', 'months', 'days', 'hours', 'minutes', 'description', 'enabled'
+        'instance_id', 'action', 'months', 'days', 'hours', 'minutes', 'description', 'enabled',
     ];
 
     protected $casts = [
@@ -23,5 +23,18 @@ class Schedule extends Model
     public function instance()
     {
         return $this->belongsTo(Instance::class);
+    }
+
+    public function getNextRunTime()
+    {
+        $cronExpression = sprintf(
+            '%s %s * * %s',
+            implode(',', $this->minutes),
+            implode(',', $this->hours),
+            implode(',', $this->days)
+        );
+
+        $cron = \Cron\CronExpression::factory($cronExpression);
+        return $cron->getNextRunDate()->format('Y-m-d H:i:s');
     }
 }
