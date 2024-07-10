@@ -41,4 +41,6 @@
             </li>
         @endforeach
     </ul>
+@section('scripts')
+
 @endsection

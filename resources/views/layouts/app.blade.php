@@ -1,96 +1,84 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Sleek Dashboard - Free Bootstrap 4 Admin Dashboard Template and UI Kit. It is very powerful bootstrap admin dashboard, which allows you to build products like admin panels, content management systems and CRMs etc.">
+  
+    <title>@yield('title', 'Dashboard')</title>
     
-    <title>Dashboard Template for Bootstrap</title>
-
-    <!-- Bootstrap core CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <!-- GOOGLE FONTS -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500|Poppins:400,500,600,700|Roboto:400,500" rel="stylesheet">
+    <link href="https://cdn.materialdesignicons.com/4.4.95/css/materialdesignicons.min.css" rel="stylesheet">
+  
+    <!-- PLUGINS CSS STYLE -->
+    <link href="{{ asset('assets/plugins/simplebar/simplebar.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/plugins/nprogress/nprogress.css') }}" rel="stylesheet">
+  
+    <!-- No Extra plugin used -->
+    <link href="{{ asset('assets/plugins/jvectormap/jquery-jvectormap-2.0.3.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/plugins/daterangepicker/daterangepicker.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/plugins/toastr/toastr.min.css') }}" rel="stylesheet">
     
-    <!-- Toastr CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
-    
-    <!-- Custom styles for this template -->
-    <link href="{{ asset('css/dashboard.css') }}" rel="stylesheet">
+    <!-- SLEEK CSS -->
+    <link id="sleek-css" rel="stylesheet" href="{{ asset('assets/css/sleek.css') }}">
+  
+    <!-- FAVICON -->
+    <link href="{{ asset('assets/img/favicon.png') }}" rel="shortcut icon">
+  
+    @yield('styles')
+    <script src="{{ asset('assets/plugins/nprogress/nprogress.js') }}"></script>
 </head>
-
-<body>
-    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
-        <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Company name</a>
-        <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
-        <ul class="navbar-nav px-3">
-            <li class="nav-item text-nowrap">
-                <a class="nav-link" href="#">Sign out</a>
-            </li>
-        </ul>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
-                <div class="sidebar-sticky">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="{{ route('instances.index') }}">
-                                <span data-feather="home"></span>
-                                Dashboard <span class="sr-only">(current)</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('instances.running') }}">
-                                <span data-feather="file"></span>
-                                Running Instances
-                            </a>
-                        </li>
-                        <!-- Other links ... -->
-                    </ul>
-                </div>
-            </nav>
-
-            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
-                @yield('content')
-            </main>
-        </div>
-    </div>
-
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-
-    <!-- Toastr JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
-    <!-- Icons -->
-    <script src="https://unpkg.com/feather-icons"></script>
+<body class="header-fixed sidebar-fixed sidebar-dark header-light" id="body">
     <script>
-        feather.replace()
+      NProgress.configure({ showSpinner: false });
+      NProgress.start();
     </script>
 
-    <!-- Toastr Configuration -->
-    <script>
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": true,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": false,
-            "onclick": null,
-            "showDuration": "300",
-            "hideDuration": "1000",
-            "timeOut": "5000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut"
-        };
-    </script>
+    <div id="toaster"></div>
 
+    <div class="wrapper">
+        <!-- LEFT SIDEBAR -->
+        @include('layouts.partials.sidebar')
+
+        <!-- PAGE WRAPPER -->
+        <div class="page-wrapper">
+          <!-- Header -->
+          <header class="main-header" id="header">
+            @include('layouts.partials.navbar')
+          </header>
+          
+          <!-- CONTENT WRAPPER -->
+          <div class="content-wrapper">
+            <div class="content">
+              @yield('content')
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <footer class="footer mt-auto">
+            <div class="copyright bg-white">
+              <p>
+                Copyright &copy; <span id="copy-year"></span> Axess System LTD
+              </p>
+            </div>
+            <script>
+              var d = new Date();
+              var year = d.getFullYear();
+              document.getElementById("copy-year").innerHTML = year;
+            </script>
+          </footer>
+        </div> <!-- End Page Wrapper -->
+    </div> <!-- End Wrapper -->
+
+    <!-- Javascript -->
+    <script src="{{ asset('assets/plugins/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/simplebar/simplebar.min.js') }}"></script>
+    <script src="{{ asset('assets/js/sleek.js') }}"></script>
+    <link href="{{ asset('assets/options/optionswitch.css') }}" rel="stylesheet">
+    <script src="{{ asset('assets/options/optionswitcher.js') }}"></script>
     @yield('scripts')
 </body>
 </html>

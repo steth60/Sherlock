@@ -193,7 +193,32 @@ $(document).ready(function() {
             }
         });
     }
+    const consoleOutput = document.getElementById('console-output');
+    
+    function appendToConsole(text) {
+        consoleOutput.innerHTML += text + '\n';
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
 
+    // Simulating console output (replace this with your actual console output logic)
+    function simulateConsoleOutput() {
+        const outputLines = [
+            " "
+        ];
+
+        let lineIndex = 0;
+        const outputInterval = setInterval(() => {
+            if (lineIndex < outputLines.length) {
+                appendToConsole(outputLines[lineIndex]);
+                lineIndex++;
+            } else {
+                clearInterval(outputInterval);
+            }
+        }, 1000);
+    }
+
+    // Call this function when the page loads or when you want to refresh the console output
+    simulateConsoleOutput();
     function generateEnvPreview() {
         const rows = document.querySelectorAll('#env-variables-container .form-group.row');
         let previewContent = '';
@@ -223,4 +248,6 @@ $(document).ready(function() {
     $('#previewModal').on('show.bs.modal', generateEnvPreview);
 
     populateEnvFields();
+
+    
 });

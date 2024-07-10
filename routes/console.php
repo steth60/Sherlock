@@ -14,37 +14,36 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Function to execute the task
-function executeTask($task)
-{
-    Log::info("Executing task: {$task->id}");
-    $instance = $task->instance;
-    $instanceController = new InstanceController();
-
-    try {
-        switch ($task->action) {
-            case 'start':
-                Log::info("Starting instance: {$instance->id}");
-                $instanceController->start(new \Illuminate\Http\Request(), $instance);
-                break;
-            case 'stop':
-                Log::info("Stopping instance: {$instance->id}");
-                $instanceController->stop(new \Illuminate\Http\Request(), $instance);
-                break;
-            case 'restart':
-                Log::info("Restarting instance: {$instance->id}");
-                $instanceController->restart(new \Illuminate\Http\Request(), $instance);
-                break;
-        }
-        Log::info("Task executed successfully: {$task->id}");
-    } catch (\Exception $e) {
-        Log::error("Task execution failed: {$task->id}", ['error' => $e->getMessage()]);
-    }
-}
-
 Artisan::command('schedule:tasks', function () {
     Log::info('Starting schedule:tasks command');
     Log::info('Effective User ID in console command: ' . posix_geteuid()); // Log the user ID
+
+    // Define executeTask as a closure within this command
+    $executeTask = function ($task) {
+        Log::info("Executing task: {$task->id}");
+        $instance = $task->instance;
+        $instanceController = new InstanceController();
+
+        try {
+            switch ($task->action) {
+                case 'start':
+                    Log::info("Starting instance: {$instance->id}");
+                    $instanceController->start(new \Illuminate\Http\Request(), $instance);
+                    break;
+                case 'stop':
+                    Log::info("Stopping instance: {$instance->id}");
+                    $instanceController->stop(new \Illuminate\Http\Request(), $instance);
+                    break;
+                case 'restart':
+                    Log::info("Restarting instance: {$instance->id}");
+                    $instanceController->restart(new \Illuminate\Http\Request(), $instance);
+                    break;
+            }
+            Log::info("Task executed successfully: {$task->id}");
+        } catch (\Exception $e) {
+            Log::error("Task execution failed: {$task->id}", ['error' => $e->getMessage()]);
+        }
+    };
 
     try {
         $tasks = TaskSchedule::where('enabled', 1)->get();
@@ -73,11 +72,11 @@ Artisan::command('schedule:tasks', function () {
             // If the time to run is less than 1 minute, execute the task immediately
             if ($minutesUntilNextRun < 1) {
                 Log::info("Executing task immediately: {$task->id}");
-                executeTask($task);
+                $executeTask($task);
             } else {
                 // Schedule task execution
-                Schedule::call(function () use ($task) {
-                    executeTask($task);
+                Schedule::call(function () use ($executeTask, $task) {
+                    $executeTask($task);
                 })->name("task_{$task->id}")->cron($cronExpression)->withoutOverlapping();
             }
         }

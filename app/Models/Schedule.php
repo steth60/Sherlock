@@ -37,4 +37,13 @@ class Schedule extends Model
         $cron = \Cron\CronExpression::factory($cronExpression);
         return $cron->getNextRunDate()->format('Y-m-d H:i:s');
     }
+
+    public function getFormattedSchedule()
+    {
+        $days = implode(', ', $this->days);
+        $hours = implode(', ', $this->hours);
+        $minutes = implode(', ', $this->minutes);
+        
+        return "Days: {$days}, Hours: {$hours}, Minutes: {$minutes}";
+    }
 }
