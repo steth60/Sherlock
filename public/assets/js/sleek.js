@@ -283,7 +283,6 @@ $(document).ready(function () {
         showMethod: "fadeIn",
         hideMethod: "fadeOut"
       };
-      toastr.success("Welcome to sleek", "Howdy!");
     }
   }
 

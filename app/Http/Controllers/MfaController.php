@@ -88,7 +88,7 @@ class MfaController extends Controller
 
     public function showChallenge()
     {
-        return view('settings.two-factor-challenge');
+        return view('auth.two-factor-challenge');
     }
 
     public function verifyChallenge(Request $request)

@@ -26,4 +26,8 @@ class Instance extends Model
     {
         return $this->hasMany(Schedule::class);
     }
+    public function notes()
+    {
+        return $this->hasMany(Note::class);
+    }
 }

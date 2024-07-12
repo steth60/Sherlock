@@ -62,37 +62,23 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->name('password.update');
     }
 
-    // Two Factor Authentication...
-    if (Features::enabled(Features::twoFactorAuthentication())) {
-        if ($enableViews) {
-            Route::get(RoutePath::for('two-factor.login', '/two-factor-challenge'), [TwoFactorAuthenticatedSessionController::class, 'create'])
-                ->middleware(['guest:' . config('fortify.guard')])
-                ->name('two-factor.login');
-        }
-
-        Route::post(RoutePath::for('two-factor.login', '/two-factor-challenge'), [TwoFactorAuthenticatedSessionController::class, 'store'])
-            ->middleware(['guest:' . config('fortify.guard')]);
-    }
-
     // MFA Setup Routes
     Route::get('/two-factor-setup', [MfaController::class, 'showSetupForm'])->name('two-factor.setup')->middleware('auth');
     Route::post('/two-factor-setup', [MfaController::class, 'setupMfa'])->name('two-factor.setup.post');
 
-    // Two-Factor Challenge Routes
     Route::get('/two-factor-challenge', [MfaController::class, 'showChallenge'])
         ->name('two-factor.challenge')
-        ->middleware(['auth' . config('fortify.guard')]);
+        ->middleware(['auth:' . config('fortify.guard')]);
 
     Route::post('/two-factor-challenge', [MfaController::class, 'verifyChallenge'])
         ->name('two-factor.challenge.verify')
-        ->middleware(['auth' . config('fortify.guard')]);
-    
-        Route::get('/two-factor-recovery-codes', [MfaController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes')->middleware(['auth' . config('fortify.guard')]);
+        ->middleware(['auth:' . config('fortify.guard')]);
 
-    
+    // Custom Two-Factor Recovery Codes Route (renamed to avoid conflict with Fortify)
+    Route::get('/two-factor-recovery-codes', [MfaController::class, 'showRecoveryCodes'])
+        ->name('custom.two-factor.recovery-codes')
+        ->middleware(['auth:' . config('fortify.guard')]);
 });
-
-
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -103,7 +89,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
     Route::get('/home', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::resource('instances', InstanceController::class);
     Route::get('/instances', [InstanceController::class, 'index'])->name('instances.index');
     Route::get('/instances/running', [InstanceController::class, 'running'])->name('instances.running');
     Route::get('/instances/create', [InstanceController::class, 'create'])->name('instances.create');
@@ -119,10 +105,19 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
     Route::post('/instances/{instance}/confirm-updates', [InstanceController::class, 'confirmUpdates'])->name('instances.confirm.updates');
     Route::get('/instances/{instance}/edit', [InstanceController::class, 'edit'])->name('instances.edit');
     Route::post('/instances/{instance}', [InstanceController::class, 'update'])->name('instances.update');
+    Route::get('/instances/{instance}/status', [InstanceController::class, 'getStatus']);
     Route::get('/instances/{instance}/env', [InstanceController::class, 'getEnv'])->name('instances.get.env');
     Route::post('/instances/{instance}/env', [InstanceController::class, 'updateEnv'])->name('instances.update.env');
     Route::get('instances/{instance}/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
     Route::post('instances/{instance}/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
+    Route::get('/instances/{instance}/metrics', [InstanceController::class, 'getMetrics']);
+    Route::post('/instances/{instance}/notes', [InstanceController::class, 'storeNote'])->name('instances.notes.store');
+    Route::delete('/notes/{note}', [InstanceController::class, 'destroyNote'])->name('notes.destroy');
+    Route::get('/instances/{instance}/notes', [InstanceController::class, 'getNotes'])->name('instances.notes.index');
+    Route::get('/instances/{instance}/files', [InstanceController::class, 'listFiles'])->name('instances.files');
+Route::get('/instances/{instance}/files/view', [InstanceController::class, 'viewFile'])->name('instances.files.view');
+Route::post('/instances/{instance}/files/update', [InstanceController::class, 'updateFile'])->name('instances.files.update');
+Route::get('/instances/{instance}/files/editor', [InstanceController::class, 'fileEditor'])->name('instances.files.editor');
     Route::get('schedules/{schedule}/edit', [ScheduleController::class, 'edit'])->name('schedules.edit');
     Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update');
     Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
@@ -157,7 +152,7 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
     Route::get('/settings/mfa-reset', [SettingsController::class, 'showMfaResetForm'])->name('settings.mfa-reset');
     Route::post('/settings/mfa-reset', [SettingsController::class, 'resetMfa'])->name('settings.mfa-reset.update');
 
-    // Truest Devices
+    // Trusted Devices
     Route::get('/settings/trusted-devices', [SettingsController::class, 'index'])->name('settings.trusted-devices.index');
     Route::post('/settings/trusted-devices', [SettingsController::class, 'store'])->name('settings.trusted-devices.store');
     Route::put('/settings/trusted-devices/{id}', [SettingsController::class, 'update'])->name('settings.trusted-devices.update');

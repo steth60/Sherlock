@@ -1,7 +1,7 @@
 <aside class="left-sidebar bg-sidebar">
     <div id="sidebar" class="sidebar sidebar-with-footer">
       <div class="app-brand">
-        <a href="{{ url('/') }}" title="Sleek Dashboard">
+        <a href="{{ url('/') }}" title="Sherlock Dashboard">
           <svg class="brand-icon" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" width="30" height="33"
             viewBox="0 0 30 33">
             <g fill="none" fill-rule="evenodd">
@@ -9,7 +9,7 @@
               <path class="logo-fill-white" fill="#FFF" d="M11 4v25l8 4V0z" />
             </g>
           </svg>
-          <span class="brand-name text-truncate">Sleek Dashboard</span>
+          <span class="brand-name text-truncate">Sherlock Dashboard</span>
         </a>
       </div>
       <div class="" data-simplebar style="height: 100%;">

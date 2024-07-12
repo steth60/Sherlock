@@ -14,12 +14,12 @@ class EnsureMfaEnabled
         $user = Auth::user();
         $trustedDevice = $this->isTrustedDevice($request, $user);
 
-        Log::info('EnsureMfaEnabled Middleware executed', [
-            'user' => $user,
-            'google2fa_secret' => $user ? $user->google2fa_secret : null,
-            'session' => $request->session()->all(),
-            'trusted_device' => $trustedDevice,
-        ]);
+   //     Log::info('EnsureMfaEnabled Middleware executed', [
+   //         'user' => $user,
+   //         'google2fa_secret' => $user ? $user->google2fa_secret : null,
+   //         'session' => $request->session()->all(),
+   //         'trusted_device' => $trustedDevice,
+   //    ]);
 
         if ($user && !empty($user->google2fa_secret) && !$request->session()->has('auth.2fa.verified') && !$trustedDevice) {
             return redirect()->route('two-factor.challenge');

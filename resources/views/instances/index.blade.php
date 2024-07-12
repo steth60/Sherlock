@@ -14,7 +14,7 @@
             {{ session('success') }}
         </div>
     @endif
-
+sdsdsd
     <a href="{{ route('instances.create') }}" class="btn btn-primary">Create New Instance</a>
     <ul class="list-group mt-3">
         @foreach($instances as $instance)

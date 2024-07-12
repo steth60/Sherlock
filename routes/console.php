@@ -15,8 +15,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('schedule:tasks', function () {
-    Log::info('Starting schedule:tasks command');
-    Log::info('Effective User ID in console command: ' . posix_geteuid()); // Log the user ID
+   // Log::info('Starting schedule:tasks command');
+   // Log::info('Effective User ID in console command: ' . posix_geteuid()); // Log the user ID
 
     // Define executeTask as a closure within this command
     $executeTask = function ($task) {
@@ -47,7 +47,7 @@ Artisan::command('schedule:tasks', function () {
 
     try {
         $tasks = TaskSchedule::where('enabled', 1)->get();
-        Log::info('Tasks retrieved from the database', ['task_count' => $tasks->count()]);
+       // Log::info('Tasks retrieved from the database', ['task_count' => $tasks->count()]);
 
         foreach ($tasks as $task) {
             $cronExpression = sprintf(
@@ -71,7 +71,7 @@ Artisan::command('schedule:tasks', function () {
 
             // If the time to run is less than 1 minute, execute the task immediately
             if ($minutesUntilNextRun < 1) {
-                Log::info("Executing task immediately: {$task->id}");
+               // Log::info("Executing task immediately: {$task->id}");
                 $executeTask($task);
             } else {
                 // Schedule task execution
@@ -87,3 +87,5 @@ Artisan::command('schedule:tasks', function () {
 
 // Define a task that runs every minute to trigger the above command
 Schedule::command('schedule:tasks')->everyMinute();
+Schedule::command('metrics:capture')->everyFiveSeconds();
+Schedule::command('instance:check-status')->everyFiveSeconds();

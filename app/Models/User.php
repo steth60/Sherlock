@@ -57,6 +57,26 @@ class User extends Authenticatable implements MustVerifyEmail
     
         $this->notify(new ResetPasswordNotification($url));
     }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class);
+    }
+
+    public function hasRole($role)
+    {
+        return $this->roles()->where('name', $role)->exists();
+    }
+
+    public function hasDepartment($department)
+    {
+        return $this->departments()->where('name', $department)->exists();
+    }
     
 }
 

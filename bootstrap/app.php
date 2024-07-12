@@ -60,6 +60,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'mfa.setup' => RedirectToMfaSetup::class,
             'mfa' => EnsureMfaEnabled::class,  // Added this line
             'password.confirm' => RequirePassword::class,
+            'role' => CheckRole::class,
+            'department' => CheckDepartment::class,
         ]);
 
         $middleware->priority([
