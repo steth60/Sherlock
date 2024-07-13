@@ -1,7 +1,5 @@
 <?php
 
-// App\Models\User.php
-
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -21,6 +19,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'google2fa_secret', // For Google 2FA
         'two_factor_confirmed_at',
+        'department', // Added department field
+        'active', // Added active field
+        'force_password_change',
     ];
 
     protected $hidden = [
@@ -34,20 +35,25 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'two_factor_confirmed_at' => 'datetime',
+        'active' => 'boolean',
+        'force_password_change' => 'boolean',
     ];
 
     public function hasVerifiedMfa()
     {
         return !is_null($this->two_factor_confirmed_at);
     }
+
     public function passwordHistories()
     {
         return $this->hasMany(PasswordHistory::class);
     }
+
     public function trustedDevices()
     {
         return $this->hasMany(TrustedDevice::class);
     }
+
     public function sendPasswordResetNotification($token)
     {
         $url = url(route('password.reset', [
@@ -58,25 +64,20 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->notify(new ResetPasswordNotification($url));
     }
 
-    public function roles()
+    // Define the relationship with groups
+    public function groups()
     {
-        return $this->belongsToMany(Role::class);
+        return $this->belongsToMany(Group::class);
     }
 
-    public function departments()
+    // Method to check if a user has a specific permission
+    public function hasPermission($permission)
     {
-        return $this->belongsToMany(Department::class);
+        foreach ($this->groups as $group) {
+            if ($group->permissions->contains('name', $permission)) {
+                return true;
+            }
+        }
+        return false;
     }
-
-    public function hasRole($role)
-    {
-        return $this->roles()->where('name', $role)->exists();
-    }
-
-    public function hasDepartment($department)
-    {
-        return $this->departments()->where('name', $department)->exists();
-    }
-    
 }
-

@@ -1,18 +1,21 @@
+// vite.config.js
+
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
+import { resolve } from 'path';
+import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'public/build',
-    manifest: true,
-    rollupOptions: {
-      input: 'resources/js/main.jsx',
+    plugins: [
+        vue(),
+        laravel({
+            input: 'resources/js/app.js', // Ensure this path points to your main JS file
+            refresh: true,
+        }),
+    ],
+    resolve: {
+        alias: {
+            '@': resolve(__dirname, 'resources/js'),
+        },
     },
-  },
-  resolve: {
-    alias: {
-      '@': '/resources/js',
-    },
-  },
 });

@@ -10,12 +10,12 @@ return [
     'username' => 'email',
     'email' => 'email',
     'views' => true,
-    'home' => '/dashboard',
+    'home' => '/home',
     'prefix' => '',
     'domain' => null,
     'lowercase_usernames' => false,
     'limiters' => [
-        'login' => null,
+        'login' => 'login',
     ],
     'paths' => [
         'login' => null,

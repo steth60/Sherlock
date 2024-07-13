@@ -185,7 +185,46 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="row">
+                <div class="col-md-4 col-lg-4 col-xl-4">
+                    <div class="card widget-block p-4 rounded bg-white border">
+                        <div class="card-block">
+                            <h4 class="text-primary my-2" id="cpu-usage-text">0%</h4>
+                            <p class="pb-3">CPU Usage</p>
+                            <div class="progress my-2" style="height: 5px;">
+                                <div id="cpu-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-4 col-xl-4">
+                    <div class="card widget-block p-4 rounded bg-white border">
+                        <div class="card-block">
+                            <h4 class="text-primary my-2" id="memory-usage-text">0%</h4>
+                            <p class="pb-3">Memory Usage</p>
+                            <div class="progress my-2" style="height: 5px;">
+                                <div id="memory-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-4 col-xl-4">
+                    <div class="card widget-block p-4 rounded bg-white border">
+                        <div class="card-block">
+                            <h4 class="text-primary my-2" id="uptime-text">0:00.00</h4>
+                            <p class="pb-3">Uptime</p>
+                            <div class="progress my-2" style="height: 5px; visibility: hidden;">
+                                <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
 
+            
+            
             <div class="row">
                 <div class="col-md-3">
                     <div class="card">
@@ -204,7 +243,7 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="col-md-9">
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="console">
@@ -219,9 +258,9 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         @include('instances.partials.scheduling-tab')
-
+                        
                         <div class="tab-pane fade" id="env-variables">
                             <div class="card card-default">
                                 <div class="card-header card-header-border-bottom">
@@ -295,7 +334,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         <div class="tab-pane fade" id="notes">
                             <div class="card card-default">
                                 <div class="card-header card-header-border-bottom">
@@ -310,7 +349,7 @@
                                         </div>
                                         <button type="submit" class="btn btn-primary">Save Note</button>
                                     </form>
-
+                        
                                     <div id="notes-container">
                                         <div class="list-group" id="saved-notes">
                                             @foreach($notes as $note)
@@ -327,7 +366,7 @@
                                             </div>
                                             @endforeach
                                         </div>
-
+                        
                                         <nav aria-label="Notes pagination" class="mt-4">
                                             <ul class="pagination pagination-flat justify-content-center">
                                                 {{ $notes->links() }}
@@ -337,7 +376,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         <div class="tab-pane fade" id="file-browser">
                             <div class="card card-default">
                                 <div class="card-header card-header-border-bottom">
@@ -366,37 +405,24 @@
     const instanceId = {{ $instance->id }};
     const csrfToken = '{{ csrf_token() }}';
     const envContent = @json($envContent);
+
 </script>
 <script src="{{ asset('./js/instance-management.js') }}"></script>
 <script src="{{ asset('./js/schedule-management.js') }}"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/material-darker.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.4/split.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/htmlmixed/htmlmixed.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js"></script>
+</body>
 
-<script>
-    $(document).ready(function() {
-        function setActiveTab(tabId) {
-            $('#instance-tabs a').removeClass('active');
-            $('#instance-tabs a[href="' + tabId + '"]').addClass('active');
-            $('.tab-pane').removeClass('show active');
-            $(tabId).addClass('show active');
-            localStorage.setItem('lastInstanceTab', tabId);
-        }
-
-        $('#instance-tabs a').on('click', function (e) {
-            e.preventDefault();
-            setActiveTab($(this).attr('href'));
-        });
-
-        var lastTab = localStorage.getItem('lastInstanceTab');
-        if (lastTab) {
-            setActiveTab(lastTab);
-        }
-    });
-</script>
 @endsection

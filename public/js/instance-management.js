@@ -41,6 +41,7 @@ $(document).ready(function() {
 
     // 2. UI Helpers
 
+  
     function updateInstanceStatus(status) {
         document.getElementById('instance-status').textContent = status;
     }
@@ -70,6 +71,56 @@ $(document).ready(function() {
             button.html(button.data('original-text'));
             button.prop('disabled', false);
         }
+    }
+
+    // 3. AJAX Helpers
+
+    function handleAjaxError(xhr, status, error) {
+        console.error("An error occurred: " + error);
+        if (xhr.responseJSON && xhr.responseJSON.errors) {
+            toastr.error(xhr.responseJSON.errors.content[0]);
+        } else {
+            toastr.error("An error occurred: " + error);
+        }
+    }
+
+    function ajaxRequest(url, method, data, successCallback, errorCallback) {
+        $.ajax({
+            url: url,
+            method: method,
+            data: data,
+            success: successCallback,
+            error: errorCallback || handleAjaxError
+        });
+    }
+
+    function ajaxAction(action, url, successMessage, finalCallback) {
+        $('#confirmModal').modal('show');
+        $('#confirmModalConfirm').off('click').on('click', function() {
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: {
+                    _token: csrfToken
+                },
+                success: function (data) {
+                    if (data.status === 'success') {
+                        updateInstanceStatus(data.instance.status);
+                        refreshConsole();
+                        fetchUsage();
+                        showNotification(successMessage, 'success');
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                    if (finalCallback) finalCallback();
+                },
+                error: function(xhr, status, error) {
+                    handleAjaxError(xhr, status, error);
+                    if (finalCallback) finalCallback();
+                }
+            });
+            $('#confirmModal').modal('hide');
+        });
     }
 
     // 3. AJAX Helpers
@@ -486,10 +537,10 @@ $(document).ready(function() {
                 <input type="hidden" name="env[][type]" value="comment">
             `;
         }
-
+    
         envVariablesContainer.appendChild(row);
     }
-
+    
     function populateEnvFields() {
         const lines = envContent.split('\n');
         lines.forEach(line => {
@@ -501,7 +552,7 @@ $(document).ready(function() {
             }
         });
     }
-
+    
     function generateEnvPreview() {
         const rows = document.querySelectorAll('#env-variables-container .form-group.row');
         let previewContent = '';
@@ -518,22 +569,22 @@ $(document).ready(function() {
         });
         envPreview.textContent = previewContent;
     }
-
+    
     addVariableBtn.addEventListener('click', () => addEnvRow('variable'));
     addCommentBtn.addEventListener('click', () => addEnvRow('comment'));
-
+    
     envVariablesContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('remove-row')) {
             e.target.closest('.form-group.row').remove();
         }
     });
-
+    
     $('#previewModal').on('show.bs.modal', generateEnvPreview);
-
+    
     populateEnvFields();
-
+    
     // 8. Notes Management
-
+    
     $('#notes-form').on('submit', function(e) {
         e.preventDefault();
         var content = $('#note-content').val();
@@ -562,12 +613,12 @@ $(document).ready(function() {
             error: handleAjaxError
         });
     });
-
+    
     // Handle note deletion
     $('#saved-notes').on('click', '.delete-note', function() {
         var noteItem = $(this).closest('.list-group-item');
         var noteId = noteItem.data('note-id');
-
+    
         $.ajax({
             url: '/notes/' + noteId,
             method: 'DELETE',
@@ -580,14 +631,14 @@ $(document).ready(function() {
             error: handleAjaxError
         });
     });
-
+    
     // Handle pagination
     $(document).on('click', '.pagination a', function(e) {
         e.preventDefault();
         var page = $(this).attr('href').split('page=')[1];
         fetchNotes(page);
     });
-
+    
     function fetchNotes(page) {
         $.ajax({
             url: '/instances/' + instanceId + '/notes?page=' + page,
@@ -596,11 +647,11 @@ $(document).ready(function() {
             }
         });
     }
-
+    
     // 9. File Browser and Editor
-
+    
     var openFiles = {};
-
+    
     // Load file browser
     function loadFileBrowser(path = '', sort = 'name', order = 'asc') {
         $.ajax({
@@ -613,14 +664,14 @@ $(document).ready(function() {
             error: handleAjaxError
         });
     }
-
+    
     // Handle breadcrumb navigation
     $(document).on('click', '.breadcrumb-item a, .folder-link', function(e) {
         e.preventDefault();
         const path = $(this).data('path');
         loadFileBrowser(path);
     });
-
+    
     // Handle sorting
     $(document).on('click', '.sort-link', function(e) {
         e.preventDefault();
@@ -628,32 +679,32 @@ $(document).ready(function() {
         const order = $(this).hasClass('asc') ? 'desc' : 'asc';
         loadFileBrowser('', sort, order);
     });
-
+    
     // Handle file viewing
     $(document).on('click', '.file-link', function(e) {
         e.preventDefault();
         const filePath = $(this).data('path');
         openFile(filePath);
     });
-
+    
     function openFile(filePath) {
         if (openFiles[filePath]) {
             showFileEditor(filePath);
             return;
         }
-
+    
         $.ajax({
             url: `/instances/${instanceId}/files/view`,
             data: { file: filePath },
             success: function(data) {
                 const tabId = `file-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}`;
                 const tabTitle = filePath.split('/').pop();
-
+    
                 openFiles[filePath] = {
                     content: data.content,
                     tabId: tabId
                 };
-
+    
                 // Create new tab
                 $('#editorTabs').append(`
                     <li class="nav-item">
@@ -671,7 +722,7 @@ $(document).ready(function() {
                         </div>
                     </div>
                 `);
-
+    
                 const editor = CodeMirror.fromTextArea(document.getElementById(`editor-${tabId}`), {
                     lineNumbers: true,
                     mode: 'javascript', // You can set the mode based on file extension
@@ -679,16 +730,16 @@ $(document).ready(function() {
                     matchBrackets: true,
                     autoCloseBrackets: true
                 });
-
+    
                 openFiles[filePath].editor = editor;
-
+    
                 updateOpenFilesList();
                 showFileEditor(filePath);
             },
             error: handleAjaxError
         });
     }
-
+    
     function showFileEditor(filePath) {
         const fileInfo = openFiles[filePath];
         $(`#${fileInfo.tabId}-tab`).tab('show');
@@ -696,7 +747,7 @@ $(document).ready(function() {
         $('#file-editor-container').show();
         fileInfo.editor.refresh();
     }
-
+    
     function updateOpenFilesList() {
         const $openFilesList = $('#open-files ul');
         $openFilesList.empty();
@@ -705,7 +756,7 @@ $(document).ready(function() {
             $openFilesList.append(`<li class="list-group-item"><a href="#" class="open-file" data-path="${filePath}"><span class="mdi mdi-file-document"></span> ${fileName}</a></li>`);
         });
     }
-
+    
     // Handle file saving
     $(document).on('click', '.save-file', function() {
         const filePath = $(this).data('file');
@@ -725,7 +776,7 @@ $(document).ready(function() {
             error: handleAjaxError
         });
     });
-
+    
     // Handle closing files
     $(document).on('click', '.close-file, .close-tab', function(e) {
         e.preventDefault();
@@ -736,14 +787,14 @@ $(document).ready(function() {
         }
         closeFile(filePath);
     });
-
+    
     function closeFile(filePath) {
         const fileInfo = openFiles[filePath];
         $(`#${fileInfo.tabId}-tab`).remove();
         $(`#${fileInfo.tabId}`).remove();
         delete openFiles[filePath];
         updateOpenFilesList();
-
+    
         if (Object.keys(openFiles).length === 0) {
             $('#file-browser-container').show();
             $('#file-editor-container').hide();
@@ -751,20 +802,20 @@ $(document).ready(function() {
             $('#editorTabs a:first').tab('show');
         }
     }
-
+    
     // Handle back to file browser button
     $(document).on('click', '#back-to-browser', function() {
         $('#file-browser-container').show();
         $('#file-editor-container').hide();
     });
-
+    
     // Handle clicking on open files list
     $(document).on('click', '.open-file', function(e) {
         e.preventDefault();
         const filePath = $(this).data('path');
         showFileEditor(filePath);
     });
-
+    
     // Load initial file browser content
     loadFileBrowser();
-});
+    });

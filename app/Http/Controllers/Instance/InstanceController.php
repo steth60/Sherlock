@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Instance;
 
 use App\Models\Instance;
 use App\Models\Note;

@@ -11,6 +11,7 @@
     <!-- GOOGLE FONTS -->
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500|Poppins:400,500,600,700|Roboto:400,500" rel="stylesheet">
     <link href="https://cdn.materialdesignicons.com/4.4.95/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="{{ asset('assets/css/sleek.css') }}" rel="stylesheet">
 
     <!-- SLEEK CSS -->
     <link id="sleek-css" rel="stylesheet" href="{{ asset('assets/css/sleek.css') }}">
@@ -47,7 +48,7 @@
     <script src="{{ asset('assets/js/sleek.js') }}"></script>
     <link href="{{ asset('assets/options/optionswitch.css') }}" rel="stylesheet">
     <script src="{{ asset('assets/options/optionswitcher.js') }}"></script>
-
+    @vite('resources/js/app.js')
     @yield('scripts')
 </body>
 

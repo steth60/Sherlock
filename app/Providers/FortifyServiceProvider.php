@@ -6,10 +6,14 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Actions\AttemptToAuthenticate;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
@@ -20,6 +24,8 @@ use Laravel\Fortify\Contracts\RegisterViewResponse;
 use Laravel\Fortify\Contracts\RequestPasswordResetLinkViewResponse;
 use Laravel\Fortify\Contracts\ResetPasswordViewResponse;
 use Laravel\Fortify\Contracts\TwoFactorChallengeViewResponse;
+use Laravel\Fortify\Contracts\ConfirmPasswordViewResponse;
+use Laravel\Fortify\Features;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -79,6 +85,15 @@ class FortifyServiceProvider extends ServiceProvider
                 }
             };
         });
+
+        $this->app->singleton(ConfirmPasswordViewResponse::class, function () {
+            return new class implements ConfirmPasswordViewResponse {
+                public function toResponse($request)
+                {
+                    return view('auth.confirm-password');
+                }
+            };
+        });
     }
 
     public function boot(): void
@@ -98,7 +113,7 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         Fortify::registerView(function () {
-            return view('auth.register'); // Ensure this view exists
+            return view('auth.register');
         });
 
         Fortify::twoFactorChallengeView(function () {
@@ -114,6 +129,23 @@ class FortifyServiceProvider extends ServiceProvider
                 $app->make('auth')->guard(),
                 $app->make(LoginRateLimiter::class)
             );
+        });
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user && Hash::check($request->password, $user->password)) {
+                return $user;
+            }
+        });
+
+        Fortify::authenticateThrough(function (Request $request) {
+            return array_filter([
+                // Remove or comment out the throttle middleware
+                // config('fortify.limiters.login') ? 'throttle:'.config('fortify.limiters.login') : null,
+                Features::enabled(Features::twoFactorAuthentication()) ? RedirectIfTwoFactorAuthenticatable::class : null,
+                AttemptToAuthenticate::class,
+            ]);
         });
     }
 }

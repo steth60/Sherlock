@@ -65,5 +65,6 @@
     <script src="{{ asset('assets/js/sleek.js') }}"></script>
     <script src="{{ asset('assets/options/optionswitcher.js') }}"></script>
     @yield('scripts')
+    @vite('resources/js/app.js')
 </body>
 </html>

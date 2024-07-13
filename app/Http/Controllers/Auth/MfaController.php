@@ -1,16 +1,19 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use PragmaRX\Google2FA\Google2FA;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
+use BaconQrCode\Writer;
 use App\Models\User;
 use App\Models\TrustedDevice;
 use Illuminate\Support\Facades\Auth;
-use BaconQrCode\Writer;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -80,7 +83,7 @@ class MfaController extends Controller
     public function showRecoveryCodes()
     {
         if (session()->has('recovery_codes')) {
-            return view('settings.two-factor-recovery-codes', ['recovery_codes' => session('recovery_codes')]);
+            return view('auth.two-factor-recovery-codes', ['recovery_codes' => session('recovery_codes')]);
         }
 
         return redirect()->route('dashboard');
