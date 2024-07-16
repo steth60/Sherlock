@@ -13,6 +13,7 @@
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.5",
         "league/flysystem": "^3.28",
+        "nesbot/carbon": "^3.6",
         "pragmarx/google2fa-laravel": "^2.2",
         "spatie/laravel-permission": "^6.9",
         "symfony/process": "^7.1"

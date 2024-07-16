@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Invitation;
 use App\Models\Group;
 use App\Models\TrustedDevice;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 
 class UserController extends Controller
@@ -15,13 +18,23 @@ class UserController extends Controller
     public function index()
     {
         $users = User::all();
+        $invitations = Invitation::all();
+
         $totalUsers = $users->count();
         $activeUsers = $users->where('active', true)->count();
         $inactiveUsers = $users->where('active', false)->count();
         $unverifiedEmailUsers = User::whereNull('email_verified_at')->count();
         $mfaNotEnabledUsers = User::where('two_factor_enabled', false)->count();
 
-        return view('admin.users.index', compact('users', 'totalUsers', 'activeUsers', 'inactiveUsers', 'unverifiedEmailUsers', 'mfaNotEnabledUsers'));
+        return view('admin.users.index', compact(
+            'users', 
+            'invitations',
+            'totalUsers', 
+            'activeUsers',
+            'inactiveUsers',
+            'unverifiedEmailUsers', 
+            'mfaNotEnabledUsers'
+        ));
     }
 
     public function show(User $user)
@@ -91,29 +104,27 @@ class UserController extends Controller
         return redirect()->back()->with('status', 'User disabled successfully.');
     }
 
-
     public function setTempPassword(Request $request, User $user)
-{
-    $tempPassword = $this->generateTempPassword();
+    {
+        $tempPassword = $this->generateTempPassword();
 
-    $user->password = Hash::make($tempPassword);
-    $user->force_password_change = true; // flag to force password change on next login
-    $user->save();
+        $user->password = Hash::make($tempPassword);
+        $user->force_password_change = true; // flag to force password change on next login
+        $user->save();
 
-    // Send email with temporary password
-    Mail::send('email-templates.temp-password', ['user' => $user, 'tempPassword' => $tempPassword], function ($message) use ($user) {
-        $message->to($user->email);
-        $message->subject('Your Temporary Password');
-    });
+        // Send email with temporary password
+        Mail::send('emails.temp-password', ['user' => $user, 'tempPassword' => $tempPassword], function ($message) use ($user) {
+            $message->to($user->email);
+            $message->subject('Your Temporary Password');
+        });
 
-    return response()->json([
-        'status' => 'success',
-        'tempPassword' => $tempPassword,
-        'userName' => $user->name
-    ]);
-}
+        return response()->json([
+            'status' => 'success',
+            'tempPassword' => $tempPassword,
+            'userName' => $user->name
+        ]);
+    }
 
-    
     private function generateTempPassword()
     {
         return $this->randomString(6) . '-' . $this->randomString(6);
@@ -124,36 +135,34 @@ class UserController extends Controller
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
         $randomString = '';
-        for ($i = 0; $i < $length; $i++) {
+        for ($i = 0; i < $length; $i++) {
             $randomString .= $characters[rand(0, $charactersLength - 1)];
         }
         return $randomString;
     }
 
     public function showChangePasswordForm()
-{
-    return view('auth.change-password');
-}
-
-public function changePassword(Request $request)
-{
-    $request->validate([
-        'current_password' => 'required',
-        'new_password' => 'required|string|min:8|confirmed',
-    ]);
-
-    $user = Auth::user();
-
-    if (!Hash::check($request->current_password, $user->password)) {
-        return back()->withErrors(['current_password' => 'Current password is incorrect']);
+    {
+        return view('auth.change-password');
     }
 
-    $user->password = Hash::make($request->new_password);
-    $user->force_password_change = false;
-    $user->save();
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
 
-    return redirect()->route('dashboard')->with('status', 'Password changed successfully');
-}
+        $user = Auth::user();
 
-    
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Current password is incorrect']);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->force_password_change = false;
+        $user->save();
+
+        return redirect()->route('dashboard')->with('status', 'Password changed successfully');
+    }
 }

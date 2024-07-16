@@ -86,7 +86,7 @@ class MfaController extends Controller
             return view('auth.two-factor-recovery-codes', ['recovery_codes' => session('recovery_codes')]);
         }
 
-        return redirect()->route('dashboard');
+        return redirect()->route('home');
     }
 
     public function showChallenge()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Instance;
 
+use App\Http\Controllers\Controller;
 use App\Models\Instance;
 use App\Models\Note;
 use Illuminate\Http\Request;

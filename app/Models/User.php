@@ -55,14 +55,21 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function sendPasswordResetNotification($token)
-    {
-        $url = url(route('password.reset', [
-            'token' => $token,
-            'email' => $this->getEmailForPasswordReset(),
-        ], false));
-    
-        $this->notify(new ResetPasswordNotification($url));
-    }
+{
+    $url = url(route('password.reset', [
+        'token' => $token,
+        'email' => $this->getEmailForPasswordReset(),
+    ], false));
+
+    $this->notify(new ResetPasswordNotification($url));
+}
+
+use App\Notifications\VerifyEmailNotification;
+
+public function sendEmailVerificationNotification()
+{
+    $this->notify(new VerifyEmailNotification);
+}
 
     // Define the relationship with groups
     public function groups()

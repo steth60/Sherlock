@@ -9,7 +9,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">User Details</h5>
-                    <form action="{{ route('users.update', $user) }}" method="POST">
+                    <form action="{{ route('admin.users.update', $user) }}" method="POST">
                         @csrf
                         @method('PUT')
                         <div class="form-group">
@@ -45,7 +45,7 @@
     </div>
 
     <h5>Assign Groups</h5>
-    <form action="{{ route('users.assignGroups', $user) }}" method="POST" class="mb-4">
+    <form action="{{ route('admin.users.assignGroups', $user) }}" method="POST" class="mb-4">
         @csrf
         <div class="form-group">
             <select multiple class="form-control" name="groups[]">
@@ -112,7 +112,7 @@
     <!-- Remove MFA Modal -->
     <div class="modal fade" id="removeMfaModal" tabindex="-1" aria-labelledby="removeMfaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form action="{{ route('users.removeMfa', $user) }}" method="POST">
+            <form action="{{ route('admin.users.removeMfa', $user) }}" method="POST">
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header">
@@ -171,7 +171,7 @@
     }
 
     function setTempPassword() {
-        var url = '{{ route("users.setTempPassword", $user) }}';
+        var url = '{{ route("admin.users.setTempPassword", $user) }}';
 
         fetch(url, {
             method: 'POST',

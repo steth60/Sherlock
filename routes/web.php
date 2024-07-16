@@ -11,6 +11,7 @@ use App\Http\Controllers\{
     SettingsController, 
     //MenuController, 
     PasswordChangeController,
+    TicketController,
 };
 use App\Http\Controllers\Admin\{
     UserController, 
@@ -29,7 +30,7 @@ use Laravel\Fortify\Features;
 use Laravel\Fortify\RoutePath;
 
 // Fortify Routes
-Route::group(['middleware' => config('fortify.middleware', ['web'])], function () {
+Route::group(['middleware' => config('fortify.middleware', ['web', 'checkMaintainerMode'])], function () {
     $enableViews = config('fortify.views', true);
 
     // Authentication
@@ -77,6 +78,9 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
     }
 
     // MFA Setup Routes
+   // Route::get('mfa/setup', [MfaController::class, 'showSetupForm'])->name('mfa.setup');
+   // Route::post('mfa/setup', [MfaController::class, 'store'])->name('mfa.store');
+
     Route::prefix('two-factor')->name('two-factor.')->group(function () {
         Route::get('setup', [MfaController::class, 'showSetupForm'])->name('setup')->middleware('auth');
         Route::post('setup', [MfaController::class, 'setupMfa'])->name('setup.post');
@@ -85,6 +89,18 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
     });
 
     Route::get('/user/two-factor-recovery-codes', [MfaController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes')->middleware('auth');
+
+    //Route::get('fido/setup', [FIDOController::class, 'create'])->name('fido.setup');
+    //Route::post('fido/setup', [FIDOController::class, 'store'])->name('fido.store');
+    //Route::post('fido/verify', [FIDOController::class, 'verify'])->name('fido.verify');
+
+   // Route::get('email-token/setup', [EmailTokenController::class, 'create'])->name('email-token.setup');
+   // Route::post('email-token/setup', [EmailTokenController::class, 'store'])->name('email-token.store');
+    //Route::post('email-token/verify', [EmailTokenController::class, 'verify'])->name('email-token.verify');
+    //Route::get('/user/two-factor-recovery-codes', [MfaController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes')->middleware('auth');
+
+
+
 });
 
 Route::get('/', function () {
@@ -92,7 +108,8 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
-    Route::get('/home', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/home', function () {return view('home');})->name('home');
+    Route::get('/instances', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/menu', [MenuController::class, 'getMenuItems'])->name('menu');
 
     // Instance Routes
@@ -115,14 +132,19 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
             Route::post('{instance}/notes', [InstanceController::class, 'storeNote'])->name('notes.store');
             Route::get('{instance}/notes', [InstanceController::class, 'getNotes'])->name('notes.index');
             Route::delete('/notes/{note}', [InstanceController::class, 'destroyNote'])->name('notes.destroy');
+            Route::get('{instance}/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
+            Route::post('{instance}/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
             Route::prefix('{instance}/files')->name('files.')->group(function () {
                 Route::get('/', [InstanceController::class, 'listFiles'])->name('index');
                 Route::get('view', [InstanceController::class, 'viewFile'])->name('view');
                 Route::post('update', [InstanceController::class, 'updateFile'])->name('update');
                 Route::get('editor', [InstanceController::class, 'fileEditor'])->name('editor');
             });
-        });
+            Route::post('/schedules/{schedule}/trigger-now', [ScheduleController::class, 'triggerNow']);
 
+        });
+        Route::get('/holiday', [App\Http\Controllers\HolidayController::class, 'index'])->name('holiday.index');
+        Route::get('/holiday/calendar', [App\Http\Controllers\HolidayController::class, 'calendar'])->name('holiday.calendar');
         // Schedule Routes
         Route::prefix('schedules')->name('schedules.')->group(function () {
             Route::get('create', [ScheduleController::class, 'create'])->name('create');
@@ -130,7 +152,7 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
             Route::get('{schedule}/edit', [ScheduleController::class, 'edit'])->name('edit');
             Route::put('{schedule}', [ScheduleController::class, 'update'])->name('update');
             Route::delete('{schedule}', [ScheduleController::class, 'destroy'])->name('destroy');
-            Route::post('{schedule}/trigger-now', [ScheduleController::class, 'triggerNow'])->name('triggerNow');
+            
         });
     });
 
@@ -157,8 +179,9 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
         });
     });
 
-    // Admin Routes
-    Route::middleware('permission:admin_access')->prefix('admin')->name('admin.')->group(function () {
+
+        // Admin Routes
+        Route::middleware('permission:admin_access')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('unverified-email-users', [AdminDashboardController::class, 'unverifiedEmailUsers'])->name('unverified-email-users');
         Route::get('mfa-not-enabled-users', [AdminDashboardController::class, 'mfaNotEnabledUsers'])->name('mfa-not-enabled-users');
@@ -184,14 +207,21 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
 
         // Navigation Menu
         Route::get('nav', [MenuController::class, 'index'])->name('nav.index');
-    Route::post('nav', [MenuController::class, 'store'])->name('nav.store');
-    Route::put('nav/{menuItem}', [MenuController::class, 'update'])->name('nav.update');
-    Route::delete('nav/{menuItem}', [MenuController::class, 'destroy'])->name('nav.destroy');
-    Route::post('nav/reorder', [MenuController::class, 'reorder'])->name('menu.reorder');
-});
+        Route::post('nav', [MenuController::class, 'store'])->name('nav.store');
+        Route::put('nav/{menuItem}', [MenuController::class, 'update'])->name('nav.update');
+        Route::delete('nav/{menuItem}', [MenuController::class, 'destroy'])->name('nav.destroy');
+        Route::post('nav/reorder', [MenuController::class, 'reorder'])->name('menu.reorder');
+
+
+        Route::post('/invite', [AdminDashboardController::class, 'invite'])->name('invite');
+        Route::post('/resend-invite/{id}', [AdminDashboardController::class, 'resendInvite'])->name('resend-invite');
+        Route::post('/revoke-invite/{id}', [AdminDashboardController::class, 'revokeInvite'])->name('revoke-invite');
+        Route::post('/toggle-maintainer-mode', [AdminDashboardController::class, 'toggleMaintainerMode'])->name('toggle-maintainer-mode');
+    
+    });
     
 
-    // Force change password
+   
    
 });
 

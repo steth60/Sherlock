@@ -15,7 +15,7 @@
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
                     <td>
-                        <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-primary">View</a>
+                        <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-primary">View</a>
                     </td>
                 </tr>
             @endforeach

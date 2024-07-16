@@ -4,6 +4,32 @@
 <div class="container">
     <h1>Admin Dashboard</h1>
 
+    @if (session('status'))
+        <div class="alert alert-success">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('resend_email'))
+        <div class="alert alert-warning">
+            This email already has an invitation. Would you like to resend it?
+            <form action="{{ route('admin.resend-invite', session('invitation_id')) }}" method="POST" style="display:inline;">
+                @csrf
+                <button type="submit" class="btn btn-warning btn-sm">Resend Invite</button>
+            </form>
+        </div>
+    @endif
+
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card">
@@ -36,7 +62,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Users Without Verified Email</h5>
-                    <p class="card-text display-4">{{ $unverifiedEmails }}</p>
+                    <p class="card-text display-4">{{ $unverifiedEmailUsers }}</p>
                     <button class="btn btn-primary" data-toggle="modal" data-target="#unverifiedEmailModal">View Users</button>
                 </div>
             </div>
@@ -45,7 +71,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Users Without MFA Enabled</h5>
-                    <p class="card-text display-4">{{ $mfaNotEnabled }}</p>
+                    <p class="card-text display-4">{{ $mfaNotEnabledUsers }}</p>
                     <button class="btn btn-primary" data-toggle="modal" data-target="#mfaNotEnabledModal">View Users</button>
                 </div>
             </div>
@@ -64,6 +90,37 @@
             </div>
         </div>
     </div>
+
+    <!-- Invitation Form -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Invite User</h5>
+                    <form action="{{ route('admin.invite') }}" method="POST">
+                        @csrf
+                        <div class="form-group">
+                            <label for="invitee_name">Invitee Name</label>
+                            <input type="text" class="form-control" id="invitee_name" name="invitee_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Invitee Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Invitation</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    <form action="{{ route('admin.toggle-maintainer-mode') }}" method="POST">
+        @csrf
+        <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="maintainer_mode" name="maintainer_mode" {{ $isMaintainerMode ? 'checked' : '' }}>
+            <label class="form-check-label" for="maintainer_mode">Enable Maintainer Mode</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
 </div>
 
 <!-- Unverified Email Users Modal -->

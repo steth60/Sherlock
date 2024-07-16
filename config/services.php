@@ -28,6 +28,11 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    'freshservice' => [
+        'base_url' => env('FFRESHSERVICE_DOMAINL'),
+        'api_key'  => env('FRESHSERVICE_API_KEY'),
+    ],
+    
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

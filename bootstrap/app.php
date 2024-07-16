@@ -15,7 +15,8 @@ use App\Http\Middleware\{
     LoadMenuItems,
     ForcePasswordChange,
     CheckPasswordChange,
-    CheckPermission
+    CheckPermission,
+    CheckMaintainerMode,
 };
 use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
 use Illuminate\Auth\Middleware\Authorize;
@@ -69,7 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'mfa' => EnsureMfaEnabled::class,
             'permission' => CheckPermission::class,
             'checkPasswordChange' => CheckPasswordChange::class,
-            'throttle' => ThrottleRequests::class,
+            'checkMaintainerMode' => CheckMaintainerMode::class,
         ]);
 
 
@@ -90,10 +91,11 @@ return Application::configure(basePath: dirname(__DIR__))
             Authorize::class,
             CheckPasswordChange::class,
             CheckPermission::class,
-            ThrottleRequests::class,
+            
         ]);
     })
     ->withExceptions(function ($exceptions) {
         // Exception handling configuration
     })
+    
     ->create();

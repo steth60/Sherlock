@@ -19,7 +19,7 @@
     <button class="btn btn-secondary" onclick="downloadRecoveryCodes()">Download</button>
 </div>
 
-<form method="GET" action="{{ route('dashboard') }}">
+<form method="GET" action="{{ route('home') }}">
     <button type="submit" class="btn btn-primary">Next</button>
 </form>
 

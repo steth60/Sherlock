@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use App\Models\Schedule as TaskSchedule;
-use App\Http\Controllers\InstanceController;
+use App\Http\Controllers\Instance\InstanceController;
 use Cron\CronExpression;
 use Carbon\Carbon;
 
@@ -20,28 +20,28 @@ Artisan::command('schedule:tasks', function () {
 
     // Define executeTask as a closure within this command
     $executeTask = function ($task) {
-        Log::info("Executing task: {$task->id}");
+      //  Log::info("Executing task: {$task->id}");
         $instance = $task->instance;
         $instanceController = new InstanceController();
 
         try {
             switch ($task->action) {
                 case 'start':
-                    Log::info("Starting instance: {$instance->id}");
+                  //  Log::info("Starting instance: {$instance->id}");
                     $instanceController->start(new \Illuminate\Http\Request(), $instance);
                     break;
                 case 'stop':
-                    Log::info("Stopping instance: {$instance->id}");
+                  //  Log::info("Stopping instance: {$instance->id}");
                     $instanceController->stop(new \Illuminate\Http\Request(), $instance);
                     break;
                 case 'restart':
-                    Log::info("Restarting instance: {$instance->id}");
+                  //  Log::info("Restarting instance: {$instance->id}");
                     $instanceController->restart(new \Illuminate\Http\Request(), $instance);
                     break;
             }
-            Log::info("Task executed successfully: {$task->id}");
+          //  Log::info("Task executed successfully: {$task->id}");
         } catch (\Exception $e) {
-            Log::error("Task execution failed: {$task->id}", ['error' => $e->getMessage()]);
+           // Log::error("Task execution failed: {$task->id}", ['error' => $e->getMessage()]);
         }
     };
 
@@ -61,13 +61,13 @@ Artisan::command('schedule:tasks', function () {
             $nextRun = Carbon::instance($cron->getNextRunDate());
             $minutesUntilNextRun = Carbon::now()->diffInMinutes($nextRun);
 
-            Log::info('Scheduling task', [
-                'task_id' => $task->id,
-                'cron_expression' => $cronExpression,
-                'action' => $task->action,
-                'instance_id' => $task->instance_id,
-                'next_run_in_minutes' => $minutesUntilNextRun
-            ]);
+           // Log::info('Scheduling task', [
+            //    'task_id' => $task->id,
+            //    'cron_expression' => $cronExpression,
+            //    'action' => $task->action,
+            //    'instance_id' => $task->instance_id,
+            //    'next_run_in_minutes' => $minutesUntilNextRun
+            //]);
 
             // If the time to run is less than 1 minute, execute the task immediately
             if ($minutesUntilNextRun < 1) {
@@ -81,7 +81,7 @@ Artisan::command('schedule:tasks', function () {
             }
         }
     } catch (\Exception $e) {
-        Log::error('Error in schedule:tasks command', ['error' => $e->getMessage()]);
+      //  Log::error('Error in schedule:tasks command', ['error' => $e->getMessage()]);
     }
 })->describe('Schedule tasks from the database');
 
@@ -89,3 +89,6 @@ Artisan::command('schedule:tasks', function () {
 Schedule::command('schedule:tasks')->everyMinute();
 Schedule::command('metrics:capture')->everyFiveSeconds();
 Schedule::command('instance:check-status')->everyFiveSeconds();
+//Schedule::command('tickets:fetch-initial')->hourly();
+//Schedule::command('tickets:check-updates')->everyFiveMinutes();
+

@@ -7,11 +7,11 @@ use Illuminate\Notifications\Notification;
 
 class ResetPasswordNotification extends Notification
 {
-    public $token;
+    public $url;
 
-    public function __construct($token)
+    public function __construct($url)
     {
-        $this->token = $token;
+        $this->url = $url;
     }
 
     public function via($notifiable)
@@ -21,13 +21,11 @@ class ResetPasswordNotification extends Notification
 
     public function toMail($notifiable)
     {
-        $url = url(route('password.reset', [
-            'token' => $this->token,
-            'email' => $notifiable->email,
-        ], false));
-
         return (new MailMessage)
                     ->subject('Reset Password Notification')
-                    ->view('layouts.email-templates.password-reset', ['url' => $url]);
+                    ->view('emails.password-reset', [
+                        'url' => $this->url,
+                        'user' => $notifiable
+                    ]);
     }
 }
