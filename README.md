@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Project-Sherlock
 Project-Sherlock, a web platform for deploying Python &amp; Powershell projects with virtual env
 =======
