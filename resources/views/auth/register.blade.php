@@ -3,73 +3,76 @@
 @section('title', 'Sign Up')
 
 @section('content')
-<h4 class="text-dark mb-5">Sign Up</h4>
+    <div class="mb-4">
+        <i class="feather icon-user-plus auth-icon"></i>
+    </div>
+    <h3 class="mb-4">Sign Up</h3>
 
-<form method="POST" action="{{ route('register') }}">
-    @csrf
+    @if ($errors->any())
+        <div class="alert alert-danger mb-4">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-    <div class="row">
-        <!-- Name -->
-        <div class="form-group col-md-12 mb-4">
-            <label for="name">Name</label>
-            <input type="text" class="form-control input-lg @error('name') is-invalid @enderror" id="name" name="name" value="{{ request('invitee_name') ?? old('name') }}" readonly required autofocus>
-            @error('name')
-                <span class="invalid-feedback" role="alert">
-                    <strong>{{ $message }}</strong>
-                </span>
-            @enderror
+    <form method="POST" action="{{ route('register') }}">
+        @csrf
+
+        <div class="form-group mb-3">
+            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ request('invitee_name') ?? old('name') }}" readonly required autofocus placeholder="Name">
         </div>
 
-        <!-- Email Address -->
-        <div class="form-group col-md-12 mb-4">
-            <label for="email">Email</label>
-            <input type="email" class="form-control input-lg @error('email') is-invalid @enderror" id="email" name="email" value="{{ request('email') ?? old('email') }}" required>
-            @error('email')
-                <span class="invalid-feedback" role="alert">
-                    <strong>{{ $message }}</strong>
-                </span>
-            @enderror
+        <div class="form-group mb-3">
+            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ request('email') ?? old('email') }}" readonly required autofocus placeholder="Email">
         </div>
 
-        <!-- Password -->
-        <div class="form-group col-md-12 mb-4">
-            <label for="password">Password</label>
-            <input type="password" class="form-control input-lg @error('password') is-invalid @enderror" id="password" name="password" required>
-            @error('password')
-                <span class="invalid-feedback" role="alert">
-                    <strong>{{ $message }}</strong>
-                </span>
-            @enderror
+        <div class="form-group mb-3">
+            <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" required placeholder="Password">
         </div>
 
-        <!-- Confirm Password -->
-        <div class="form-group col-md-12 mb-4">
-            <label for="password_confirmation">Confirm Password</label>
-            <input type="password" class="form-control input-lg" id="password_confirmation" name="password_confirmation" required>
+        <div class="form-group mb-3">
+            <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required placeholder="Confirm Password">
         </div>
 
-        <!-- Invitation Code -->
-        <div class="form-group col-md-12 mb-4">
-            <label for="invitation_code">Invitation Code</label>
-            <input type="text" class="form-control input-lg @error('invitation_code') is-invalid @enderror" id="invitation_code" name="invitation_code" value="{{ request('invitation_code') ?? old('invitation_code') }}" readonly required>
-            @error('invitation_code')
-                <span class="invalid-feedback" role="alert">
-                    <strong>{{ $message }}</strong>
-                </span>
-            @enderror
+        <div class="form-group mb-4">
+            <input type="text" class="form-control @error('invitation_code') is-invalid @enderror" id="invitation_code" name="invitation_code" value="{{ request('invitation_code') ?? old('invitation_code') }}" readonly required placeholder="Invitation Code">
         </div>
 
-        <!-- Hidden fields to ensure the name and email are submitted -->
         <input type="hidden" name="invitee_name" value="{{ request('invitee_name') ?? old('invitee_name') }}">
         <input type="hidden" name="email" value="{{ request('email') ?? old('email') }}">
 
-        <div class="col-md-12">
-            <button type="submit" class="btn btn-lg btn-primary btn-block mb-4">Register</button>
+        <button type="submit" class="btn btn-primary btn-block mb-4">Register</button>
 
-            <p>Already have an account?
-                <a class="text-blue" href="{{ route('login') }}">Sign In</a>
-            </p>
-        </div>
-    </div>
-</form>
+        <p class="text-center mb-0">Already have an account? <a href="{{ route('login') }}">Sign In</a></p>
+    </form>
+@endsection
+
+@section('styles')
+<style>
+    .auth-content {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .card {
+        width: 100%;
+        max-width: 400px;
+    }
+    .alert ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .auth-icon {
+        font-size: 3rem;
+        color: #5e72e4;
+    }
+    .form-control {
+        height: auto;
+        padding: 0.75rem 1rem;
+    }
+</style>
 @endsection

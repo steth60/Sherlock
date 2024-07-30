@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Http\Controllers\InstanceController;
+use App\Http\Controllers\Instance\InstanceController;
 use App\Models\Instance;
 
 class CaptureMetrics extends Command

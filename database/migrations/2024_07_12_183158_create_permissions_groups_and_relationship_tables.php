@@ -12,8 +12,17 @@ class CreatePermissionsGroupsAndRelationshipTables extends Migration
             $table->id();
             $table->string('name');
             $table->string('description')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->timestamps();
+
+            // Add foreign key constraint
+            $table->foreign('parent_id')
+                  ->references('id')
+                  ->on('permissions')
+                  ->onDelete('cascade');
         });
+    
+
 
         Schema::create('groups', function (Blueprint $table) {
             $table->id();

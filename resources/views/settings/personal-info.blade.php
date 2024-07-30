@@ -1,5 +1,10 @@
-<div class="card">
-    <div class="card-header">Personal Information</div>
+
+    
+    
+    
+    
+
+    <h5 class="m-b-10">Personal Information</h5>
     <div class="card-body">
         <form method="POST" action="{{ route('settings.personal-info.update') }}">
             @csrf
@@ -14,4 +19,3 @@
             <button type="submit" class="btn btn-primary">Update Personal Info</button>
         </form>
     </div>
-</div>

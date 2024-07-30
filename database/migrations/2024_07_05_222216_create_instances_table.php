@@ -17,10 +17,11 @@ return new class extends Migration
             $table->string('github_url');
             $table->string('start_command');
             $table->string('status')->default('stopped');
+            $table->integer('pid')->nullable();
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }
-    
 
     /**
      * Reverse the migrations.

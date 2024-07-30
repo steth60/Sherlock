@@ -1,46 +1,64 @@
 @extends('layouts.app')
-
+@section('title', 'Instance Dashboard')
+@section('pageTitle', 'AInstance Dashboard')
 @section('content')
-    <h1>Instances</h1>
-
-    @if(session('error'))
-        <div class="alert alert-danger">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-sdsdsd
-    <a href="{{ route('instances.create') }}" class="btn btn-primary">Create New Instance</a>
-    <ul class="list-group mt-3">
-        @foreach($instances as $instance)
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <a href="{{ route('instances.show', $instance) }}">{{ $instance->name }}</a> - {{ $instance->status }}
-                <div>
-                    <form action="{{ route('instances.start', $instance) }}" method="POST" style="display:inline;">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-success">Start</button>
-                    </form>
-                    <form action="{{ route('instances.stop', $instance) }}" method="POST" style="display:inline;">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-warning">Stop</button>
-                    </form>
-                    <form action="{{ route('instances.restart', $instance) }}" method="POST" style="display:inline;">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-info">Restart</button>
-                    </form>
-                    <form action="{{ route('instances.delete', $instance) }}" method="POST" style="display:inline;">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                    </form>
+<div class="container">
+   
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Instances</h5>
+                    <p class="card-text display-4">{{ $totalInstances }}</p>
                 </div>
-            </li>
-        @endforeach
-    </ul>
-@section('scripts')
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Running Instances</h5>
+                    <p class="card-text display-4">{{ $runningInstances }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Stopped Instances</h5>
+                    <p class="card-text display-4">{{ $stoppedInstances }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div class="mt-4">
+        <h2>Recent Instances</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($recentInstances as $instance)
+                <tr>
+                    <td>{{ $instance->name }}</td>
+                    <td>{{ ucfirst($instance->status) }}</td>
+                    <td>{{ $instance->created_at->format('Y-m-d H:i') }}</td>
+                    <td>
+                        <a href="{{ route('instances.show', $instance) }}" class="btn btn-sm btn-primary">View</a>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ route('instances.create') }}" class="btn btn-success">Create New Instance</a>
+    </div>
+</div>
 @endsection

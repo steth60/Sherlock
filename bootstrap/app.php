@@ -71,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => CheckPermission::class,
             'checkPasswordChange' => CheckPasswordChange::class,
             'checkMaintainerMode' => CheckMaintainerMode::class,
+            'LaraUpdater' => App\Helpers\LaraUpdater::class,
         ]);
 
 
@@ -88,6 +89,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureFrontendRequestsAreStateful::class,
             SubstituteBindings::class,
             Authenticate::class,
+            AuthenticateSession::class,
             Authorize::class,
             CheckPasswordChange::class,
             CheckPermission::class,

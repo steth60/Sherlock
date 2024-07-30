@@ -84,6 +84,10 @@ return [
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
+
+
+    'freshservice_api_key' => env('FRESHSERVICE_API_KEY', 'your_api_key'),
+    'freshservice_domain' => env('FRESHSERVICE_DOMAIN', 'your_domain'),
     /*
     |--------------------------------------------------------------------------
     | Encryption Key
@@ -105,6 +109,8 @@ return [
         ),
     ],
 
+    
+    
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver

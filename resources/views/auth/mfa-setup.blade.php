@@ -1,22 +1,25 @@
 @extends('layouts.auth')
 
-@section('title', 'Set Up MFA')
-
 @section('content')
-<h4 class="text-dark mb-5">Set Up Multi-Factor Authentication</h4>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('Setup Multi-Factor Authentication') }}</div>
 
-<form method="POST" action="{{ route('mfa.setup') }}">
-    @csrf
-
-    <div class="form-group">
-        <label for="mfa_type">Choose MFA Method</label>
-        <select name="mfa_type" id="mfa_type" class="form-control">
-            <option value="google2fa">Google Authenticator</option>
-            <option value="fido">FIDO/Physical Token</option>
-            <option value="email">Email Token</option>
-        </select>
+                <div class="card-body">
+                    <p>{{ __('Choose a method to setup multi-factor authentication for your account:') }}</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <a href="{{ route('two-factor.setup.totp') }}" class="btn btn-primary btn-block">Setup TOTP MFA</a>
+                        </li>
+                        <li class="mb-3">
+                            <a href="{{ route('two-factor.setup.email') }}" class="btn btn-primary btn-block">Setup Email MFA</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <button type="submit" class="btn btn-primary">Continue</button>
-</form>
+</div>
 @endsection

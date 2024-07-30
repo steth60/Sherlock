@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 
+
 class AdminDashboardController extends Controller
 {
     public function index()
@@ -29,7 +30,13 @@ class AdminDashboardController extends Controller
         $unverifiedEmailUsers = $users->whereNull('email_verified_at')->count();
         $mfaNotEnabledUsers = $users->where('two_factor_enabled', false)->count();
         $isMaintainerMode = $this->getMaintainerMode();
-
+    
+        // New variables
+        
+       
+        $serverLoad = sys_getloadavg()[0] * 100; // This gets the server load (you might need to adjust based on your hosting environment)
+        //$databaseSize = \DB::select('SELECT pg_database_size(current_database()) as size')[0]->size / 1024 / 1024; // This is for PostgreSQL, adjust for your database
+    
         return view('admin.dashboard', compact(
             'users', 
             'totalPermissions', 
@@ -40,7 +47,11 @@ class AdminDashboardController extends Controller
             'inactiveUsers',
             'unverifiedEmailUsers', 
             'mfaNotEnabledUsers',
-            'isMaintainerMode'
+            'isMaintainerMode',
+     
+      
+            'serverLoad',
+        
         ));
     }
 

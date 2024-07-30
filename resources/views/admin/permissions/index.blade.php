@@ -15,18 +15,15 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Permissions</h5>
-                    <ul class="list-group">
-                        @foreach($permissions as $index => $permission)
-                            <li class="list-group-item d-flex justify-content-between align-items-center mb-4 border">
-                                <span>{{ $permission->name }}</span>
-                                <div class="dropdown">
-                                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton{{ $index }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        Actions
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton{{ $index }}">
-                                        <a class="dropdown-item" href="#" onclick="showRenameModal('{{ $permission->id }}', '{{ $permission->name }}')">Rename</a>
-                                        <a class="dropdown-item text-danger" href="#" onclick="showDeleteModal('{{ $permission->id }}')">Delete</a>
+                    <h5 class="card-title">Permissions Tree</h5>
+                    <ul id="permissionsTree" class="list-group">
+                        @foreach($rootPermissions as $permission)
+                            <li class="list-group-item" data-id="{{ $permission->id }}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="permission-name">{{ $permission->name }}</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-primary edit-btn" data-id="{{ $permission->id }}" data-name="{{ $permission->name }}">Edit</button>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{ $permission->id }}">Delete</button>
                                     </div>
                                 </div>
                             </li>
@@ -54,6 +51,15 @@
                             <label for="permissionName">Permission Name</label>
                             <input type="text" class="form-control" id="permissionName" name="name" required>
                         </div>
+                        <div class="form-group">
+                            <label for="parentPermission">Parent Permission</label>
+                            <select class="form-control" id="parentPermission" name="parent_id">
+                                <option value="">None</option>
+                                @foreach($allPermissions as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -64,22 +70,31 @@
         </div>
     </div>
 
-    <!-- Rename Modal -->
-    <div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form id="renameForm" method="POST">
+            <form id="editForm" method="POST">
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="renameModalLabel">Rename Permission</h5>
+                        <h5 class="modal-title" id="editModalLabel">Edit Permission</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="newPermissionName">New Permission Name</label>
-                            <input type="text" class="form-control" id="newPermissionName" name="name" required>
+                            <label for="editPermissionName">Permission Name</label>
+                            <input type="text" class="form-control" id="editPermissionName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editParentPermission">Parent Permission</label>
+                            <select class="form-control" id="editParentPermission" name="parent_id">
+                                <option value="">None</option>
+                                @foreach($allPermissions as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -120,17 +135,53 @@
 
 @section('scripts')
 <script>
-    function showRenameModal(permissionId, permissionName) {
-        document.getElementById('newPermissionName').value = permissionName;
-        var form = document.getElementById('renameForm');
-        form.action = '/admin/permissions/' + permissionId + '/rename';
-        $('#renameModal').modal('show');
-    }
+    $(document).ready(function() {
+        // Handle permission click
+        $('#permissionsTree').on('click', '.permission-name', function() {
+            var $li = $(this).closest('li');
+            var permissionId = $li.data('id');
+            
+            // If children are already loaded, just toggle their visibility
+            if ($li.children('ul').length > 0) {
+                $li.children('ul').toggle();
+                return;
+            }
 
-    function showDeleteModal(permissionId) {
-        var form = document.getElementById('deleteForm');
-        form.action = '/admin/permissions/' + permissionId;
-        $('#deleteModal').modal('show');
-    }
+            // Load child permissions
+            $.get('/admin/permissions/' + permissionId + '/children', function(data) {
+                var $childList = $('<ul class="list-group mt-2"></ul>');
+                data.forEach(function(child) {
+                    $childList.append(
+                        '<li class="list-group-item" data-id="' + child.id + '">' +
+                            '<div class="d-flex justify-content-between align-items-center">' +
+                                '<span class="permission-name">' + child.name + '</span>' +
+                                '<div>' +
+                                    '<button class="btn btn-sm btn-primary edit-btn" data-id="' + child.id + '" data-name="' + child.name + '">Edit</button>' +
+                                    '<button class="btn btn-sm btn-danger delete-btn" data-id="' + child.id + '">Delete</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</li>'
+                    );
+                });
+                $li.append($childList);
+            });
+        });
+
+        // Handle edit button click
+        $('#permissionsTree').on('click', '.edit-btn', function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            $('#editPermissionName').val(name);
+            $('#editForm').attr('action', '/admin/permissions/' + id + '/rename');
+            $('#editModal').modal('show');
+        });
+
+        // Handle delete button click
+        $('#permissionsTree').on('click', '.delete-btn', function() {
+            var id = $(this).data('id');
+            $('#deleteForm').attr('action', '/admin/permissions/' + id);
+            $('#deleteModal').modal('show');
+        });
+    });
 </script>
 @endsection

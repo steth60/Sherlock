@@ -8,11 +8,15 @@ use App\Models\MenuItem;
 
 class MenuController extends Controller
 {
+  
     public function index()
-    {
-        $menuItems = MenuItem::orderBy('order')->get();
-        return view('admin.nav.index', compact('menuItems'));
-    }
+{
+    $menuItems = MenuItem::with('children')
+                    ->whereNull('parent_id')
+                    ->orderBy('order')
+                    ->get();
+    return view('admin.nav.index', compact('menuItems'));
+}
 
     public function store(Request $request)
     {

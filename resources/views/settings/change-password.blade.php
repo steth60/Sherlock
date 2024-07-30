@@ -1,6 +1,5 @@
-<div class="card">
-    <div class="card-header">Change Password</div>
-    <div class="card-body">
+
+
         <form method="POST" action="{{ route('settings.change-password.update') }}">
             @csrf
             <div class="form-group">
@@ -17,5 +16,4 @@
             </div>
             <button type="submit" class="btn btn-primary">Change Password</button>
         </form>
-    </div>
-</div>
+ 

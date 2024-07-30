@@ -1,186 +1,188 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h1>Admin Dashboard</h1>
+<div class="container-fluid">
+    <div class="row">
 
-    @if (session('status'))
-        <div class="alert alert-success">
-            {{ session('status') }}
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    @if (session('resend_email'))
-        <div class="alert alert-warning">
-            This email already has an invitation. Would you like to resend it?
-            <form action="{{ route('admin.resend-invite', session('invitation_id')) }}" method="POST" style="display:inline;">
-                @csrf
-                <button type="submit" class="btn btn-warning btn-sm">Resend Invite</button>
-            </form>
-        </div>
-    @endif
-
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total Users</h5>
-                    <p class="card-text display-4">{{ $totalUsers }}</p>
+        <!-- Main content -->
+        <main class="ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Admin Dashboard</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                        <span data-feather="calendar"></span>
+                        This week
+                    </button>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total Permissions</h5>
-                    <p class="card-text display-4">{{ $totalPermissions }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total Groups</h5>
-                    <p class="card-text display-4">{{ $totalGroups }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Users Without Verified Email</h5>
-                    <p class="card-text display-4">{{ $unverifiedEmailUsers }}</p>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#unverifiedEmailModal">View Users</button>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Users Without MFA Enabled</h5>
-                    <p class="card-text display-4">{{ $mfaNotEnabledUsers }}</p>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#mfaNotEnabledModal">View Users</button>
-                </div>
-            </div>
-        </div>
-    </div>
+            @include('admin.partials.alerts')
 
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Admin Pages</h5>
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Manage Users</a>
-                    <a href="{{ route('admin.permissions.index') }}" class="btn btn-secondary">Manage Permissions</a>
-                    <a href="{{ route('admin.groups.index') }}" class="btn btn-secondary">Manage Groups</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Invitation Form -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Invite User</h5>
-                    <form action="{{ route('admin.invite') }}" method="POST">
-                        @csrf
-                        <div class="form-group">
-                            <label for="invitee_name">Invitee Name</label>
-                            <input type="text" class="form-control" id="invitee_name" name="invitee_name" required>
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Users</h5>
+                            <p class="card-text display-4">{{ $totalUsers }}</p>
                         </div>
-                        <div class="form-group">
-                            <label for="email">Invitee Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Permissions</h5>
+                            <p class="card-text display-4">{{ $totalPermissions }}</p>
                         </div>
-                        <button type="submit" class="btn btn-primary">Send Invitation</button>
-                    </form>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Groups</h5>
+                            <p class="card-text display-4">{{ $totalGroups }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Sessions</h5>
+                            <p class="card-text display-4"></p>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-    <form action="{{ route('admin.toggle-maintainer-mode') }}" method="POST">
-        @csrf
-        <div class="form-group form-check">
-            <input type="checkbox" class="form-check-input" id="maintainer_mode" name="maintainer_mode" {{ $isMaintainerMode ? 'checked' : '' }}>
-            <label class="form-check-label" for="maintainer_mode">Enable Maintainer Mode</label>
-        </div>
-        <button type="submit" class="btn btn-primary">Update</button>
-    </form>
-</div>
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">User Statistics</h5>
+                            <canvas id="userStatsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Recent Activity</h5>
+                            <ul class="list-group list-group-flush">
 
-<!-- Unverified Email Users Modal -->
-<div class="modal fade" id="unverifiedEmailModal" tabindex="-1" role="dialog" aria-labelledby="unverifiedEmailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="unverifiedEmailModalLabel">Users Without Verified Email</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-                <div id="unverifiedEmailUsersContent">Loading...</div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Invite User</h5>
+                            <form action="{{ route('admin.invite') }}" method="POST">
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="invitee_name" class="form-label">Invitee Name</label>
+                                    <input type="text" class="form-control" id="invitee_name" name="invitee_name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Invitee Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Send Invitation</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">System Status</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Maintainer Mode
+                                    <span class="badge bg-{{ $isMaintainerMode ? 'success' : 'danger' }} rounded-pill">{{ $isMaintainerMode ? 'Enabled' : 'Disabled' }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Server Load
+                                    <span class="badge bg-primary rounded-pill">{{ $serverLoad }}%</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Database Size
+                                    <span class="badge bg-info rounded-pill">0 MB</span>
+                                </li>
+                            </ul>
+                            <div class="mt-3">
+                                <form action="{{ route('admin.toggle-maintainer-mode') }}" method="POST">
+                                    @csrf
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="maintainer_mode" name="maintainer_mode" {{ $isMaintainerMode ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="maintainer_mode">Toggle Maintainer Mode</label>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary mt-2">Update</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
 </div>
 
-<!-- MFA Not Enabled Users Modal -->
-<div class="modal fade" id="mfaNotEnabledModal" tabindex="-1" role="dialog" aria-labelledby="mfaNotEnabledModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mfaNotEnabledModalLabel">Users Without MFA Enabled</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="mfaNotEnabledUsersContent">Loading...</div>
-            </div>
-        </div>
-    </div>
-</div>
+@include('admin.partials.modals')
+
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    $(document).ready(function() {
-        $('#unverifiedEmailModal').on('show.bs.modal', function () {
-            $.get('{{ route("admin.unverified-email-users") }}', function(data) {
-                var content = '<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Actions</th></tr></thead><tbody>';
-                data.forEach(function(user) {
-                    content += '<tr><td>' + user.id + '</td><td>' + user.name + '</td><td>' + user.email + '</td><td><a href="/users/' + user.id + '" class="btn btn-sm btn-primary">View</a></td></tr>';
-                });
-                content += '</tbody></table></div>';
-                $('#unverifiedEmailUsersContent').html(content);
-            });
+    document.addEventListener('DOMContentLoaded', function() {
+        // User Statistics Chart
+        const ctx = document.getElementById('userStatsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                datasets: [{
+                    label: 'New Users',
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
         });
 
-        $('#mfaNotEnabledModal').on('show.bs.modal', function () {
-            $.get('{{ route("admin.mfa-not-enabled-users") }}', function(data) {
-                var content = '<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Actions</th></tr></thead><tbody>';
-                data.forEach(function(user) {
-                    content += '<tr><td>' + user.id + '</td><td>' + user.name + '</td><td>' + user.email + '</td><td><a href="/users/' + user.id + '" class="btn btn-sm btn-primary">View</a></td></tr>';
+        // Modal Functionality
+        const unverifiedEmailModal = document.getElementById('unverifiedEmailModal');
+        unverifiedEmailModal.addEventListener('show.bs.modal', function () {
+            fetch('{{ route("admin.unverified-email-users") }}')
+                .then(response => response.json())
+                .then(data => {
+                    // Populate modal content
                 });
-                content += '</tbody></table></div>';
-                $('#mfaNotEnabledUsersContent').html(content);
-            });
+        });
+
+        const mfaNotEnabledModal = document.getElementById('mfaNotEnabledModal');
+        mfaNotEnabledModal.addEventListener('show.bs.modal', function () {
+            fetch('{{ route("admin.mfa-not-enabled-users") }}')
+                .then(response => response.json())
+                .then(data => {
+                    // Populate modal content
+                });
         });
     });
 </script>

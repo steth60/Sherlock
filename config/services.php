@@ -32,6 +32,16 @@ return [
         'base_url' => env('FFRESHSERVICE_DOMAINL'),
         'api_key'  => env('FRESHSERVICE_API_KEY'),
     ],
+    'pusher' => [
+        'driver' => 'pusher',
+        'key' => env('PUSHER_APP_KEY'),
+        'secret' => env('PUSHER_APP_SECRET'),
+        'app_id' => env('PUSHER_APP_ID'),
+        'options' => [
+            'cluster' => env('PUSHER_APP_CLUSTER'),
+            'useTLS' => true,
+        ],
+    ],
     
     'slack' => [
         'notifications' => [

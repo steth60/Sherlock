@@ -8,6 +8,8 @@ use App\Models\Schedule as TaskSchedule;
 use App\Http\Controllers\Instance\InstanceController;
 use Cron\CronExpression;
 use Carbon\Carbon;
+use App\Http\Controllers\TicketController;
+use App\Services\FreshserviceService;
 
 // Registering a simple inspire command
 Artisan::command('inspire', function () {
@@ -89,6 +91,13 @@ Artisan::command('schedule:tasks', function () {
 Schedule::command('schedule:tasks')->everyMinute();
 Schedule::command('metrics:capture')->everyFiveSeconds();
 Schedule::command('instance:check-status')->everyFiveSeconds();
+//Schedule::call(function () {
+//  $freshserviceService = new FreshserviceService(app('App\Services\CacheService'));
+//  $controller = new TicketController($freshserviceService);
+// $controller->refreshCache();
+//})->everyMinute();
+
+
 //Schedule::command('tickets:fetch-initial')->hourly();
 //Schedule::command('tickets:check-updates')->everyFiveMinutes();
 

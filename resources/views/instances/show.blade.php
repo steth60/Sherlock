@@ -1,74 +1,46 @@
 @extends('layouts.app')
+
+@section('title', 'Instance Dashboard')
+@section('pageTitle', 'Instance Dashboard')
+
+@section('styles')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/darcula.min.css">
-@section('styles')
 <style>
-    #console-container {
+    /* Consolidated Styles */
+    #console-container, #console-output {
         font-family: 'Courier New', Courier, monospace;
         border-radius: 5px;
+        background-color: #2d2d2d;
     }
+
+    #console-container {
+        height: 400px;
+        overflow-y: scroll;
+    }
+
     #console-output {
         white-space: pre-wrap;
         word-wrap: break-word;
+        margin: 0;
     }
+
     #console-output::-webkit-scrollbar {
         width: 10px;
     }
+
     #console-output::-webkit-scrollbar-track {
         background: #343a40;
     }
+
     #console-output::-webkit-scrollbar-thumb {
         background: #6c757d;
     }
+
     #console-output::-webkit-scrollbar-thumb:hover {
         background: #5a6268;
     }
-    #file-editor-container {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-    #file-editor {
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-    #editorTabs {
-        background-color: #f8f9fa;
-        padding: 10px 10px 0 10px;
-    }
-    #editorContent {
-        padding: 15px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    .close-tab {
-        margin-left: 5px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .icon-folder, .icon-editable-file, .icon-file {
-        width: 1em;
-        height: 1em;
-        margin-right: 5px;
-        fill: currentColor;
-        flex-shrink: 0;
-    }
-    .folder-link, .file-link {
-        display: flex;
-        align-items: center;
-    }
-    .file-browser-breadcrumb {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        padding: 10px 15px;
-        margin-bottom: 15px;
-        border-radius: 4px;
-    }
+
     .CodeMirror {
         height: calc(100vh - 200px);
         width: 100%;
@@ -76,11 +48,13 @@
         border-radius: 4px;
         font-size: 1rem;
     }
+
     @media (max-width: 768px) {
         .CodeMirror {
             height: calc(100vh - 250px);
         }
     }
+
     @media (max-width: 767px) {
         #editorTabs .nav-link {
             max-width: 100px;
@@ -89,43 +63,7 @@
             white-space: nowrap;
         }
     }
-    .instance-card {
-        margin-bottom: 20px;
-    }
-    .instance-card .card-header {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .instance-card .card-header h2 {
-        margin: 0;
-    }
-    .instance-card .card-header .btn-edit {
-        font-size: 0.875rem;
-        padding: 0.25rem 0.5rem;
-    }
-    .instance-card .card-body {
-        padding: 20px;
-    }
-    .instance-card .card-title {
-        font-size: 1.25rem;
-        margin-bottom: 0.75rem;
-    }
-    .instance-card .card-text {
-        margin-bottom: 1.5rem;
-    }
-    .instance-control .btn-group {
-        margin-bottom: 15px;
-    }
-    .instance-control .progress {
-        height: 20px;
-        margin-bottom: 10px;
-    }
-    .instance-control .progress .progress-bar {
-        transition: width 0.6s ease;
-    }
+
 </style>
 @endsection
 
@@ -133,127 +71,111 @@
 <div class="content-wrapper">
     <div class="content">
         <div class="container-fluid">
-            <h1 class="mb-4">Instance Management</h1>
+            <div class="row mb-4">
+
+
+            </div>
 
             <div class="row mb-4">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="card">
-                        <div class="card-header card-header-border-bottom">
-                            <h2>Instance Information</h2>
-                            <a href="{{ route('instances.edit', $instance) }}" class="btn btn-primary btn-edit">Edit</a>
-                        </div>
                         <div class="card-body">
-                            <h5 class="card-title">{{ $instance->name }}</h5>
-                            <p class="card-text">
-                                <strong>GitHub URL:</strong> {{ $instance->github_url }}<br>
-                                <strong>Start Command:</strong> {{ $instance->start_command }}<br>
-                                <strong>Description:</strong> {{ $instance->description }}<br>
-                                <strong>Status:</strong> <span id="instance-status" class="badge badge-primary">{{ $instance->status }}</span>
-                            </p>
-                            <div class="btn-group d-flex mb-3" role="group">
-                                <button id="start-btn" class="btn btn-success flex-fill" {{ $instance->status === 'running' ? 'disabled' : '' }}>Start</button>
-                                <button id="stop-btn" class="btn btn-warning flex-fill" {{ $instance->status !== 'running' ? 'disabled' : '' }}>Stop</button>
-                                <button id="restart-btn" class="btn btn-info flex-fill" {{ $instance->status !== 'running' ? 'disabled' : '' }}>Restart</button>
+                            <h1 class="m-b-10">{{ $instance->name }}</h1>
+                            <p class="text-muted">Instance Management</p>
+                            <h5 class="card-title">Quick Actions</h5>
+                            <div class="btn-group" role="group">
+                                <button id="start-btn" class="btn btn-success" {{ $instance->status === 'running' ? 'disabled' : '' }}>
+                                    <i class="feather icon-play"></i> Start
+                                </button>
+                                <button id="stop-btn" class="btn btn-warning" {{ $instance->status !== 'running' ? 'disabled' : '' }}>
+                                    <i class="feather icon-square"></i> Stop
+                                </button>
+                                <button id="restart-btn" class="btn btn-info" {{ $instance->status !== 'running' ? 'disabled' : '' }}>
+                                    <i class="feather icon-refresh-cw"></i> Restart
+                                </button>
                             </div>
+                            <a href="{{ route('instances.edit', $instance) }}" class="btn btn-primary">
+                                <i class="feather icon-edit"></i> Edit Instance
+                            </a>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-8">
                     <div class="card">
-                        <div class="card-header card-header-border-bottom">
-                            <h2>Instance Metrics</h2>
-                        </div>
                         <div class="card-body">
-                            <div class="content">
-                                <h6 class="text-uppercase">
-                                    CPU Usage <span class="float-right" id="cpu-usage-text">0%</span>
-                                </h6>
-                                <div class="progress progress-xs">
-                                    <div class="progress-bar active" id="cpu-progress" style="width: 0%;" role="progressbar"></div>
-                                </div>
-                                <h6 class="text-uppercase">
-                                    Memory Usage <span class="float-right" id="memory-usage-text">0%</span>
-                                </h6>
-                                <div class="progress progress-xs">
-                                    <div class="progress-bar progress-bar-warning" id="memory-progress" style="width: 0%;" role="progressbar"></div>
-                                </div>
-                                <h6 class="text-uppercase">
-                                    Uptime <span class="float-right" id="uptime-text">0:00.00</span>
-                                </h6>
-                            </div>
+                            <h5 class="card-title">Instance Info</h5>
+                            <p><strong>GitHub URL:</strong> {{ $instance->github_url }}</p>
+                            <p><strong>Start Command:</strong> {{ $instance->start_command }}</p>
+                            <p><strong>Description:</strong> {{ $instance->description }}</p>
+                            <p><strong>Status:</strong> <span id="instance-status" class="badge bg-primary">{{ $instance->status }}</span></p>
                         </div>
+
+
                     </div>
                 </div>
             </div>
             
-            <div class="row">
-                <div class="col-md-4 col-lg-4 col-xl-4">
-                    <div class="card widget-block p-4 rounded bg-white border">
-                        <div class="card-block">
-                            <h4 class="text-primary my-2" id="cpu-usage-text">0%</h4>
-                            <p class="pb-3">CPU Usage</p>
-                            <div class="progress my-2" style="height: 5px;">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="text-primary" id="cpu-usage-text">0%</h4>
+                            <p>CPU Usage</p>
+                            <div class="progress">
                                 <div id="cpu-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 col-lg-4 col-xl-4">
-                    <div class="card widget-block p-4 rounded bg-white border">
-                        <div class="card-block">
-                            <h4 class="text-primary my-2" id="memory-usage-text">0%</h4>
-                            <p class="pb-3">Memory Usage</p>
-                            <div class="progress my-2" style="height: 5px;">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="text-primary" id="memory-usage-text">0%</h4>
+                            <p>Memory Usage</p>
+                            <div class="progress">
                                 <div id="memory-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 col-lg-4 col-xl-4">
-                    <div class="card widget-block p-4 rounded bg-white border">
-                        <div class="card-block">
-                            <h4 class="text-primary my-2" id="uptime-text">0:00.00</h4>
-                            <p class="pb-3">Uptime</p>
-                            <div class="progress my-2" style="height: 5px; visibility: hidden;">
-                                <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="text-primary" id="uptime-text">0:00.00</h4>
+                            <p>Uptime</p>
                         </div>
                     </div>
                 </div>
             </div>
-            
 
-            
+
             
             <div class="row">
                 <div class="col-md-3">
-                    <div class="card">
-                        <div class="card-header card-header-border-bottom">
-                            Instance Management
-                        </div>
-                        <div class="list-group list-group-flush" id="instance-tabs">
-                            <a href="#console" class="list-group-item list-group-item-action active" data-toggle="list">Console</a>
-                            <a href="#detailed-usage" class="list-group-item list-group-item-action" data-toggle="list">Detailed Usage</a>
-                            <a href="#scheduling" class="list-group-item list-group-item-action" data-toggle="list">Scheduling</a>
-                            <a href="#activity-log" class="list-group-item list-group-item-action" data-toggle="list">Activity Log</a>
-                            <a href="#env-variables" class="list-group-item list-group-item-action" data-toggle="list">Environment Variables</a>
-                            <a href="#file-browser" class="list-group-item list-group-item-action" data-toggle="list">File Browser</a>
-                            <a href="#notes" class="list-group-item list-group-item-action" data-toggle="list">Notes</a>
-                            <a href="#update" class="list-group-item list-group-item-action" data-toggle="list">Update</a>
-                        </div>
-                    </div>
+
+                    <ul class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                        <li><a href="#console" class="nav-link text-left active" data-bs-toggle="pill">Console</a></li>
+                        <li><a href="#detailed-usage" class="nav-link text-left" data-bs-toggle="pill">Detailed Usage</a></li>
+                        <li><a href="#scheduling" class="nav-link text-left"data-bs-toggle="pill">Scheduling</a></li>
+                        <li><a href="#activity-log" class="nav-link text-left" data-bs-toggle="pill">Activity Log</a></li>
+                        <li><a href="#env-variables" class="nav-link text-left" data-bs-toggle="pill">Environment Variables</a></li>
+                        <li><a href="#file-browser" class="nav-link text-left" data-bs-toggle="pill">File Browser</a></li>
+                        <li><a href="#notes" class="nav-link text-left"data-bs-toggle="pill">Notes</a></li>
+                        <li><a href="#update" class="nav-link text-left" data-bs-toggle="pill">Update</a></li>
+                        </ul>
+               
                 </div>
                 
                 <div class="col-md-9">
-                    <div class="tab-content">
+                    <div class="tab-content bg-transparent p-0 shadow-none">
                         <div class="tab-pane fade show active" id="console">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>Console Output</h2>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Console Output</h5>
                                 </div>
                                 <div class="card-body">
-                                    <div id="console-container" class="bg-dark p-2" style="height: 400px; overflow: hidden;">
-                                        <pre id="console-output" class="text-white m-0 pl-2" style="height: 100%; overflow-y: scroll;"></pre>
+                                    <div id="console-container" class="bg-dark p-3 rounded">
+                                        <pre id="console-output" class="text-white m-0"></pre>
                                     </div>
                                 </div>
                             </div>
@@ -262,9 +184,10 @@
                         @include('instances.partials.scheduling-tab')
                         
                         <div class="tab-pane fade" id="env-variables">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>Environment Variables</h2>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Environment Variables</h5>
                                 </div>
                                 <div class="card-body">
                                     <form id="env-form" action="{{ route('instances.update.env', $instance) }}" method="POST">
@@ -275,7 +198,7 @@
                                         <div class="mt-3">
                                             <button type="button" class="btn btn-secondary" id="add-variable-btn">Add Variable</button>
                                             <button type="button" class="btn btn-secondary" id="add-comment-btn">Add Comment/Header</button>
-                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previewModal">Preview</button>
+                                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#previewModal">Preview</button>
                                             <button type="submit" class="btn btn-success">Save Changes</button>
                                         </div>
                                     </form>
@@ -283,9 +206,9 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="detailed-usage">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>Detailed CPU and Memory Usage</h2>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Detailed CPU and Memory Usage</h5>
                                 </div>
                                 <div class="card-body">
                                     <canvas id="cpuChart"></canvas>
@@ -294,28 +217,31 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="update">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>Check for Updates</h2>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Check for Updates</h5>
                                 </div>
                                 <div class="card-body">
-                                    <button id="check-updates-btn" class="btn btn-primary">Check for Updates</button>
+                                    <div class="d-flex justify-content-between">
+                                        <button id="check-updates-btn" class="btn btn-primary">Check for Updates</button>
+                                        <button id="rollback-btn" class="btn btn-danger">Rollback to Last Backup</button>
+                                    </div>
                                     <div id="updates-result" class="mt-3" style="display: none;">
                                         <pre id="updates-diff" class="bg-light p-3"></pre>
-                                        <button id="confirm-updates-btn" class="btn btn-success">Confirm Updates</button>
+                                        <button id="confirm-updates-btn" class="btn btn-success mt-2">Confirm Updates</button>
                                     </div>
                                     <div id="no-updates" class="mt-3" style="display: none;">
                                         No updates available.
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="tab-pane fade" id="activity-log">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>Activity Log</h2>
                                 </div>
+                        </div>
+                        
+                        
+                        <div class="tab-pane fade" id="activity-log">
+
+                                    <h5 class="card-title mb-0">Activity Log</h5>
+
                                 <div class="card-body">
                                     <ul class="list-group">
                                         <li class="list-group-item">
@@ -332,14 +258,12 @@
                                         </li>
                                     </ul>
                                 </div>
-                            </div>
+
                         </div>
                         
                         <div class="tab-pane fade" id="notes">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>Notes</h2>
-                                </div>
+
+                                    <h5 class="card-title mb-0">Notes</h5>
                                 <div class="card-body">
                                     <form id="notes-form" class="mb-4">
                                         @csrf
@@ -351,22 +275,22 @@
                                     </form>
                         
                                     <div id="notes-container">
-                                        <div class="list-group" id="saved-notes">
+                                        <div id="saved-notes">
                                             @foreach($notes as $note)
-                                            <div class="list-group-item flex-column align-items-start" data-note-id="{{ $note->id }}">
-                                                <div class="d-flex w-100 justify-content-between">
-                                                    <h5 class="mb-1">{{ $note->user->name }}</h5>
-                                                    <small>{{ $note->created_at->diffForHumans() }}</small>
+                                                <div class="list-group-item flex-column align-items-start" data-note-id="{{ $note->id }}">
+                                                    <div class="d-flex w-100 justify-content-between">
+                                                        <h5 class="mb-1">{{ $note->user->name }}</h5>
+                                                        <small>{{ $note->created_at->diffForHumans() }}</small>
+                                                    </div>
+                                                    <p class="mb-1">{{ $note->content }}</p>
+                                                    <small class="text-muted">Created on {{ $note->created_at->format('Y-m-d H:i:s') }}</small>
+                                                    @if(Auth::id() === $note->user_id)
+                                                        <button class="btn btn-sm btn-danger float-right delete-note mt-2" data-toggle="modal" data-target="#deleteModal" data-note-id="{{ $note->id }}">Delete</button>
+                                                    @endif
                                                 </div>
-                                                <p class="mb-1">{{ $note->content }}</p>
-                                                <small class="text-muted">Created on {{ $note->created_at->format('Y-m-d H:i:s') }}</small>
-                                                @if(Auth::id() === $note->user_id)
-                                                    <button class="btn btn-sm btn-danger float-right delete-note mt-2">Delete</button>
-                                                @endif
-                                            </div>
                                             @endforeach
                                         </div>
-                        
+                                        
                                         <nav aria-label="Notes pagination" class="mt-4">
                                             <ul class="pagination pagination-flat justify-content-center">
                                                 {{ $notes->links() }}
@@ -374,18 +298,17 @@
                                         </nav>
                                     </div>
                                 </div>
-                            </div>
+
                         </div>
                         
                         <div class="tab-pane fade" id="file-browser">
-                            <div class="card card-default">
-                                <div class="card-header card-header-border-bottom">
-                                    <h2>File Browser</h2>
-                                </div>
+
+                                    <h5 class="card-title mb-0">File Browser</h5>
+
                                 <div class="card-body">
                                     <div id="file-browser-content"></div>
                                 </div>
-                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -395,6 +318,7 @@
             @include('instances.modals.confirm_modal')
             @include('instances.modals.preview_modal')
             @include('schedules.schedule_modal')
+            
         </div>
     </div>
 </div>
@@ -406,23 +330,48 @@
     const csrfToken = '{{ csrf_token() }}';
     const envContent = @json($envContent);
 
+    function handleAjaxError(xhr, status, error) {
+        console.error("An error occurred: " + error);
+        if (xhr.responseJSON && xhr.responseJSON.errors) {
+            toastr.error(xhr.responseJSON.errors.content[0]);
+        } else {
+            toastr.error("An error occurred: " + error);
+        }
+    }
+
+    function refreshConsole() {
+        $.ajax({
+            url: '/instances/' + instanceId + '/output',
+            method: 'GET',
+            success: function (data) {
+                const consoleOutput = document.getElementById('console-output');
+                consoleOutput.textContent = data.output;
+                scrollToBottom();
+            },
+            error: handleAjaxError
+        });
+    }
+
+    function scrollToBottom() {
+        const consoleContainer = document.getElementById('console-container');
+        consoleContainer.scrollTop = consoleContainer.scrollHeight;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setInterval(refreshConsole, 5000); // Refresh console every 5 seconds
+    });
 </script>
+
 <script src="{{ asset('./js/instance-management.js') }}"></script>
 <script src="{{ asset('./js/schedule-management.js') }}"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js">
-
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/material-darker.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.4/split.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/htmlmixed/htmlmixed.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js"></script>
-</body>
-
 @endsection

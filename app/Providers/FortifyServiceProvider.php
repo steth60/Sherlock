@@ -12,7 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
-use App\Models\User; 
+use Illuminate\Support\Facades\Mail;
+use App\Mail\LoginNotificationMail;
+use App\Models\User;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Actions\AttemptToAuthenticate;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
@@ -43,7 +45,8 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->singleton(LoginViewResponse::class, function () {
             return new class implements LoginViewResponse {
                 public function toResponse($request)
-                {
+                {   
+                    
                     return view('auth.login');
                 }
             };
@@ -101,32 +104,59 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-
+    
         RateLimiter::for('login', function (Request $request) {
             $email = (string) $request->email;
             return Limit::perMinute(5)->by($email . $request->ip());
         });
-
+    
         Fortify::loginView(function () {
             return view('auth.login');
         });
-
+    
         Fortify::registerView(function (Request $request) {
             return view('auth.register', ['invitationCode' => $request->query('invitation_code')]);
         });
+    
         Fortify::twoFactorChallengeView(function () {
             return view('auth.two-factor-challenge');
         });
-
+    
         Fortify::resetPasswordView(function ($request) {
-            return view('layouts.auth.reset-password', ['request' => $request]);
+            return view('auth.reset-password', ['request' => $request]);
         });
-
+    
         $this->app->bind(AttemptToAuthenticate::class, function ($app) {
             return new AttemptToAuthenticate(
                 $app->make('auth')->guard(),
                 $app->make(LoginRateLimiter::class)
             );
+        });
+    
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+    
+            if ($user && Hash::check($request->password, $user->password)) {
+                if ($user->login_notifications_enabled) {
+                    $ipAddress = $request->ip();
+                    $loginTime = now()->toDateTimeString();
+                    $secureAccountUrl = route('password.request');
+    
+                    Mail::to($user->email)->send(new LoginNotificationMail($user, $ipAddress, $loginTime, $secureAccountUrl));
+                }
+                return $user;
+            }
+        });
+    
+        Fortify::authenticateThrough(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+            
+            return array_filter([
+                Features::enabled(Features::twoFactorAuthentication()) && $user && ($user->google2fa_secret || $user->two_factor_email_enabled) 
+                    ? RedirectIfTwoFactorAuthenticatable::class 
+                    : null,
+                AttemptToAuthenticate::class,
+            ]);
         });
 
         Fortify::authenticateUsing(function (Request $request) {
@@ -135,12 +165,21 @@ class FortifyServiceProvider extends ServiceProvider
             if ($user && Hash::check($request->password, $user->password)) {
                 return $user;
             }
+
+            return null;
+        });
+
+        // Register the email MFA routes with Fortify
+        Fortify::twoFactorChallengeView(function () {
+            $user = Auth::user();
+            if ($user && $user->two_factor_email_enabled) {
+                return redirect()->route('two-factor-email.challenge');
+            }
+            return view('auth.two-factor-challenge');
         });
 
         Fortify::authenticateThrough(function (Request $request) {
             return array_filter([
-                // Remove or comment out the throttle middleware
-                // config('fortify.limiters.login') ? 'throttle:' . config('fortify.limiters.login') : null,
                 Features::enabled(Features::twoFactorAuthentication()) ? RedirectIfTwoFactorAuthenticatable::class : null,
                 AttemptToAuthenticate::class,
             ]);

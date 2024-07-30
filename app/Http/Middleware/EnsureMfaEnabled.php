@@ -4,28 +4,25 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class EnsureMfaEnabled
 {
     public function handle($request, Closure $next)
     {
-        $user = Auth::user();
+        $user = $request->user();
         $trustedDevice = $this->isTrustedDevice($request, $user);
 
-   //     Log::info('EnsureMfaEnabled Middleware executed', [
-   //         'user' => $user,
-   //         'google2fa_secret' => $user ? $user->google2fa_secret : null,
-   //         'session' => $request->session()->all(),
-   //         'trusted_device' => $trustedDevice,
-   //    ]);
-
-        if ($user && !empty($user->google2fa_secret) && !$request->session()->has('auth.2fa.verified') && !$trustedDevice) {
-            return redirect()->route('two-factor.challenge');
+        if ($user && !$request->session()->has('auth.2fa.verified') && !$trustedDevice) {
+            if ($user->google2fa_secret) {
+                return redirect()->route('two-factor.challenge.totp');
+            }
+            if ($user->two_factor_email_enabled) {
+                return redirect()->route('two-factor.challenge.email');
+            }
         }
 
-        if ($user && empty($user->google2fa_secret)) {
+        if ($user && !$user->google2fa_secret && !$user->two_factor_email_enabled) {
             return redirect()->route('two-factor.setup');
         }
 
@@ -34,6 +31,10 @@ class EnsureMfaEnabled
 
     private function isTrustedDevice($request, $user)
     {
+        if (!$user) {
+            return false;
+        }
+
         $deviceToken = $request->cookie('device_token');
         if ($deviceToken) {
             $trustedDevice = $user->trustedDevices()->where('device_token', $deviceToken)->where('expires_at', '>', Carbon::now())->first();

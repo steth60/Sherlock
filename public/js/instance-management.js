@@ -14,31 +14,6 @@ $(document).ready(function() {
 
     // 1. Initialization and Setup
     
-    // Handle tab navigation
-    $('#myTab a').on('click', function (e) {
-        e.preventDefault();
-        $(this).tab('show');
-    });
-
-    // Initialize toastr options
-    toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "300",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-    };
-
     // 2. UI Helpers
 
   
@@ -46,21 +21,6 @@ $(document).ready(function() {
         document.getElementById('instance-status').textContent = status;
     }
 
-    function showNotification(message, type) {
-        switch (type) {
-            case 'success':
-                toastr.success(message);
-                break;
-            case 'warning':
-                toastr.warning(message);
-                break;
-            case 'error':
-                toastr.error(message);
-                break;
-            default:
-                toastr.info(message);
-        }
-    }
 
     function setLoadingState(button, isLoading) {
         if (isLoading) {
@@ -72,57 +32,6 @@ $(document).ready(function() {
             button.prop('disabled', false);
         }
     }
-
-    // 3. AJAX Helpers
-
-    function handleAjaxError(xhr, status, error) {
-        console.error("An error occurred: " + error);
-        if (xhr.responseJSON && xhr.responseJSON.errors) {
-            toastr.error(xhr.responseJSON.errors.content[0]);
-        } else {
-            toastr.error("An error occurred: " + error);
-        }
-    }
-
-    function ajaxRequest(url, method, data, successCallback, errorCallback) {
-        $.ajax({
-            url: url,
-            method: method,
-            data: data,
-            success: successCallback,
-            error: errorCallback || handleAjaxError
-        });
-    }
-
-    function ajaxAction(action, url, successMessage, finalCallback) {
-        $('#confirmModal').modal('show');
-        $('#confirmModalConfirm').off('click').on('click', function() {
-            $.ajax({
-                url: url,
-                method: 'POST',
-                data: {
-                    _token: csrfToken
-                },
-                success: function (data) {
-                    if (data.status === 'success') {
-                        updateInstanceStatus(data.instance.status);
-                        refreshConsole();
-                        fetchUsage();
-                        showNotification(successMessage, 'success');
-                    } else {
-                        showNotification(data.message, 'error');
-                    }
-                    if (finalCallback) finalCallback();
-                },
-                error: function(xhr, status, error) {
-                    handleAjaxError(xhr, status, error);
-                    if (finalCallback) finalCallback();
-                }
-            });
-            $('#confirmModal').modal('hide');
-        });
-    }
-
     // 3. AJAX Helpers
 
     function handleAjaxError(xhr, status, error) {
@@ -175,32 +84,7 @@ $(document).ready(function() {
 
     // 4. Instance Management
 
-    $('#start-btn').on('click', function() {
-        $('#confirmModalLabel').text('Confirm Start');
-        $('#confirmModalBody').text('Are you sure you want to start this instance?');
-        setLoadingState($(this), true);
-        ajaxAction('start', '/instances/' + instanceId + '/start', 'Instance started successfully.', function() {
-            setLoadingState($('#start-btn'), false);
-        });
-    });
 
-    $('#stop-btn').on('click', function() {
-        $('#confirmModalLabel').text('Confirm Stop');
-        $('#confirmModalBody').text('Are you sure you want to stop this instance?');
-        setLoadingState($(this), true);
-        ajaxAction('stop', '/instances/' + instanceId + '/stop', 'Instance stopped successfully.', function() {
-            setLoadingState($('#stop-btn'), false);
-        });
-    });
-
-    $('#restart-btn').on('click', function() {
-        $('#confirmModalLabel').text('Confirm Restart');
-        $('#confirmModalBody').text('Are you sure you want to restart this instance?');
-        setLoadingState($(this), true);
-        ajaxAction('restart', '/instances/' + instanceId + '/restart', 'Instance restarted successfully.', function() {
-            setLoadingState($('#restart-btn'), false);
-        });
-    });
 
     $('#delete-btn').on('click', function() {
         $('#confirmModalLabel').text('Confirm Delete');
@@ -237,6 +121,32 @@ $(document).ready(function() {
         ajaxAction('confirm', '/instances/' + instanceId + '/confirm-updates', 'Updates pulled successfully.');
     });
 
+    document.getElementById('rollback-btn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to rollback to the last backup?')) {
+            fetch(`/instances/${instanceId}/rollback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Rollback completed successfully.');
+                    location.reload();
+                } else {
+                    alert('Error during rollback: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error during rollback:', error);
+                alert('Error during rollback.');
+            });
+        }
+    });
+    
+
     // 5. Console Output
 
     function refreshConsole() {
@@ -251,6 +161,7 @@ $(document).ready(function() {
     }
     setInterval(refreshConsole, 5000); // Refresh console every 5 seconds
 
+
     // 6. Metrics and Charts
 
     let initialUptime = null;
@@ -259,22 +170,18 @@ $(document).ready(function() {
 
     function parseUptime(uptime) {
         const parts = uptime.split(':');
-        if (parts.length !== 2) {
-            return null;
-        }
-        const secondsParts = parts[1].split('.');
-        if (secondsParts.length !== 2) {
+        if (parts.length !== 3) {
             return null;
         }
         return {
             hours: parseInt(parts[0], 10),
-            minutes: parseInt(secondsParts[0], 10),
-            seconds: parseInt(secondsParts[1], 10)
+            minutes: parseInt(parts[1], 10),
+            seconds: parseInt(parts[2], 10)
         };
     }
 
     function formatUptime({ hours, minutes, seconds }) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}.${seconds.toString().padStart(2, '0')}`;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
     function startUptimeCounter(uptime) {
@@ -329,12 +236,12 @@ $(document).ready(function() {
     }
 
     function fetchUsage() {
-        console.log("Fetching usage data...");
+        // console.log("Fetching usage data...");
         $.ajax({
             url: '/instances/' + instanceId + '/metrics',
             method: 'GET',
             success: function(data) {
-                console.log("Fetched data:", data);
+               // console.log("Fetched data:", data);
     
                 const cpuUsage = data.cpu.length > 0 ? data.cpu[data.cpu.length - 1] : 0;
                 const memoryUsage = data.memory.length > 0 ? data.memory[data.memory.length - 1] : 0;
@@ -397,49 +304,93 @@ $(document).ready(function() {
         setInterval(fetchUsage, 5000); // Fetch every 5 seconds
     });
 
-    let currentStatus = '{{ $instance->status }}';
 
-    function updateButtons(status) {
-        if (status === 'running') {
-            $('#start-btn').prop('disabled', true);
-            $('#stop-btn').prop('disabled', false);
-            $('#restart-btn').prop('disabled', false);
-        } else {
-            $('#start-btn').prop('disabled', false);
-            $('#stop-btn').prop('disabled', true);
-            $('#restart-btn').prop('disabled', true);
-        }
-    }
 
-    function checkInstanceStatus() {
-        if (currentStatus === 'stopped') {
-            return;
-        }
-
-        $.ajax({
-            url: '/instances/' + instanceId + '/status',
-            method: 'GET',
-            success: function(data) {
-                if (data.status !== currentStatus) {
-                    currentStatus = data.status;
-                    $('#instance-status').text(currentStatus);
-                    updateButtons(currentStatus);
-
-                    if (currentStatus === 'stopped') {
-                        showNotification('The instance has stopped.', 'warning');
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("An error occurred while checking the instance status: " + error);
-            }
-        });
-    }
-
-    setInterval(checkInstanceStatus, 5000);
     $(document).ready(function() {
-        updateButtons(currentStatus);  // Initialize button states based on current status
+        let instanceId = 6; // Replace with actual instance ID
+        let currentStatus = '';
+        let actionInProgress = false;
+    
+        // Function to update button states
+        function updateButtons(status) {
+            $('#start-btn').prop('disabled', status === 'running' || actionInProgress);
+            $('#stop-btn').prop('disabled', status !== 'running' || actionInProgress);
+            $('#restart-btn').prop('disabled', status !== 'running' || actionInProgress);
+        }
+    
+        // Function to check instance status
+        function checkInstanceStatus() {
+            if (actionInProgress) return;
+    
+            $.ajax({
+                url: `/instances/${instanceId}/status`,
+                method: 'GET',
+                success: function(data) {
+                    if (data.status !== currentStatus) {
+                        currentStatus = data.status;
+                        $('#instance-status').text(currentStatus);
+                        updateButtons(currentStatus);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error checking instance status:", error);
+                }
+            });
+        }
+    
+        // Function to perform instance action with confirmation
+        function performAction(action, buttonId) {
+            if (actionInProgress) return;
+    
+            let actionText = action.charAt(0).toUpperCase() + action.slice(1);
+            
+            $('#confirmModalLabel').text(`Confirm ${actionText}`);
+            $('#confirmModalBody').text(`Are you sure you want to ${action} this instance?`);
+            
+            $('#confirmModal').modal('show');
+    
+            $('#confirmModalConfirm').off('click').on('click', function() {
+                actionInProgress = true;
+                updateButtons(currentStatus);
+    
+                $.ajax({
+                    url: `/instances/${instanceId}/${action}`,
+                    method: 'POST',
+                    data: { _token: csrfToken },
+                    success: function(data) {
+                        if (data.status === 'success') {
+                            currentStatus = data.instance.status;
+                            $('#instance-status').text(currentStatus);
+                            updateButtons(currentStatus);
+                            toastr.success(`Instance ${action}ed successfully.`);
+                        } else {
+                            toastr.error(data.message || `Failed to ${action} instance.`);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(`Error ${action}ing instance:`, error);
+                        toastr.error(`Failed to ${action} instance.`);
+                    },
+                    complete: function() {
+                        actionInProgress = false;
+                        updateButtons(currentStatus);
+                    }
+                });
+    
+                $('#confirmModal').modal('hide');
+            });
+        }
+    
+        // Attach click handlers to buttons
+        $('#start-btn').on('click', function() { performAction('start', 'start-btn'); });
+        $('#stop-btn').on('click', function() { performAction('stop', 'stop-btn'); });
+        $('#restart-btn').on('click', function() { performAction('restart', 'restart-btn'); });
+    
+        // Initial status check and start periodic checking
+        checkInstanceStatus();
+        setInterval(checkInstanceStatus, 5000); // Check every 5 seconds
     });
+
 
     let cpuChart, memoryChart;
 
@@ -618,17 +569,28 @@ $(document).ready(function() {
     $('#saved-notes').on('click', '.delete-note', function() {
         var noteItem = $(this).closest('.list-group-item');
         var noteId = noteItem.data('note-id');
-    
+        var deleteUrl = '/instances/' + instanceId + '/notes/' + noteId;
+        
+        console.log(deleteUrl); // Print the URL to the console
+        
         $.ajax({
-            url: '/notes/' + noteId,
+            url: deleteUrl,
             method: 'DELETE',
             data: {
                 _token: csrfToken
             },
             success: function() {
                 noteItem.remove();
+                toastr.success('Note deleted successfully.');
             },
-            error: handleAjaxError
+            error: function(xhr, status, error) {
+                console.error("An error occurred: " + error);
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    toastr.error(xhr.responseJSON.errors.content[0]);
+                } else {
+                    toastr.error("An error occurred: " + error);
+                }
+            }
         });
     });
     

@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Admin;
 use Illuminate\Http\Request;
 use App\Models\Group;
 use App\Models\Permission;
+use Illuminate\Support\Facades\Log;
 
 class GroupController extends Controller
 {
     public function index()
     {
         $groups = Group::with('permissions', 'childGroups')->orderBy('weight')->get();
-        $permissions = Permission::all();
+        $permissions = Permission::with('children')->get();
         return view('admin.groups.index', compact('groups', 'permissions'));
     }
 
@@ -28,15 +29,30 @@ class GroupController extends Controller
     }
 
     public function assignPermissions(Request $request, Group $group)
-    {
-        $request->validate([
-            'permissions' => 'required|array',
-        ]);
+{
+    $validated = $request->validate([
+        'permissions' => 'array',
+    ]);
 
-        $group->permissions()->sync($request->input('permissions'));
+    \Log::info('Assigning permissions to group: ', [
+        'group_id' => $group->id, 
+        'permissions' => $validated['permissions']
+    ]);
 
-        return redirect()->route('admin.groups.index')->with('success', 'Permissions assigned to group successfully.');
-    }
+    // Log existing permissions
+    \Log::info('Existing permissions before sync: ', $group->permissions->pluck('id')->toArray());
+
+    // Sync the permissions and log the results
+    $syncResult = $group->permissions()->sync($validated['permissions']);
+    \Log::info('Sync result: ', $syncResult);
+
+    // Log existing permissions after sync
+    $group->refresh(); // Refresh the group to get updated relations
+    \Log::info('Existing permissions after sync: ', $group->permissions->pluck('id')->toArray());
+
+    return redirect()->route('admin.groups.index')->with('success', 'Permissions updated successfully.');
+}
+
 
     public function assignGroups(Request $request, Group $group)
     {

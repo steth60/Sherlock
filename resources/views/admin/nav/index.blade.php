@@ -9,7 +9,7 @@
 
     <div id="menu-builder" class="mb-4">
         @foreach($menuItems as $menuItem)
-            @include('admin.nav.menu-item', ['menuItem' => $menuItem, 'level' => 0])
+            @include('admin.nav.menu-item', ['menuItem' => $menuItem, 'depth' => 0])
         @endforeach
     </div>
 
@@ -149,6 +149,20 @@
             }
         });
 
+        // Initialize Sortable for each submenu
+        document.querySelectorAll('.card-footer > .pl-4').forEach(function(el) {
+            new Sortable(el, {
+                group: 'nested',
+                animation: 150,
+                fallbackOnBody: true,
+                swapThreshold: 0.65,
+                handle: '.handle',
+                onEnd: function(evt) {
+                    // Handle reordering here
+                }
+            });
+        });
+
         document.querySelectorAll('.edit-menu-item').forEach(function(button) {
             button.addEventListener('click', function() {
                 let menuItem = JSON.parse(this.getAttribute('data-menu-item'));
@@ -233,9 +247,16 @@
 
         document.getElementById('save-order').addEventListener('click', function() {
             let order = [];
-            document.querySelectorAll('#menu-builder > div').forEach(function(item, index) {
-                order.push({ id: item.getAttribute('data-id'), order: index + 1 });
-            });
+            function getOrder(parent, parentId = null) {
+                parent.querySelectorAll(':scope > .card').forEach(function(item, index) {
+                    order.push({ id: item.getAttribute('data-id'), order: index + 1, parent_id: parentId });
+                    let sublist = item.querySelector('.card-footer > .pl-4');
+                    if (sublist) {
+                        getOrder(sublist, item.getAttribute('data-id'));
+                    }
+                });
+            }
+            getOrder(menuBuilder);
 
             // Save the order via AJAX
             fetch('{{ route('admin.menu.reorder') }}', {

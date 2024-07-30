@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
+            $table->string('google2fa_secret')->nullable();
+            $table->boolean('two_factor_enabled')->default(false);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

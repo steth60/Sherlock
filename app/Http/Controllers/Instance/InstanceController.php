@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Instance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Instance;
+use App\Events\ConsoleOutputUpdated;
+use Carbon\Carbon;
 use App\Models\Note;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
@@ -16,44 +18,28 @@ use ZipArchive;
 
 class InstanceController extends Controller
 {
-    private $logLineLimit = 500;
+    private $logLineLimit = 5000;
     private $archiveFolder = 'instances/archive/';
     private $maxArchivedFiles = 10;
-
-    /**
-     * Index of content:
-     * 1. CRUD Operations
-     * 2. Instance Management
-     * 3. File Operations
-     * 4. Environment Variables
-     * 5. Notes Management
-     * 6. Metrics and Logging
-     * 7. Repository Operations
-     * 8. Helper Methods
-     */
+    private $lastReadOffset = 0;
 
     // 1. CRUD Operations
 
-    /**
-     * Display a listing of the instances.
-     */
     public function index()
     {
-        $instances = Instance::all();
-        return view('instances.index', compact('instances'));
+        $totalInstances = Instance::count();
+        $runningInstances = Instance::where('status', 'running')->count();
+        $stoppedInstances = Instance::where('status', 'stopped')->count();
+        $recentInstances = Instance::latest()->take(5)->get();
+
+        return view('instances.index', compact('totalInstances', 'runningInstances', 'stoppedInstances', 'recentInstances'));
     }
 
-    /**
-     * Show the form for creating a new instance.
-     */
     public function create()
     {
         return view('instances.create');
     }
 
-    /**
-     * Store a newly created instance in storage.
-     */
     public function store(Request $request)
     {
         Log::info('Store method called');
@@ -94,9 +80,6 @@ class InstanceController extends Controller
         }
     }
 
-    /**
-     * Display the specified instance.
-     */
     public function show(Instance $instance)
     {
         $instance->load('schedules');
@@ -125,17 +108,11 @@ class InstanceController extends Controller
         return view('instances.show', compact('instance', 'output', 'envContent', 'notes'));
     }
 
-    /**
-     * Show the form for editing the specified instance.
-     */
     public function edit(Instance $instance)
     {
         return view('instances.edit', compact('instance'));
     }
 
-    /**
-     * Update the specified instance in storage.
-     */
     public function update(Request $request, Instance $instance)
     {
         $validated = $request->validate([
@@ -149,9 +126,6 @@ class InstanceController extends Controller
         return redirect()->route('instances.show', $instance)->with('success', 'Instance updated successfully.');
     }
 
-    /**
-     * Remove the specified instance from storage.
-     */
     public function delete(Instance $instance)
     {
         $repoPath = base_path('instances/' . $instance->id);
@@ -167,9 +141,6 @@ class InstanceController extends Controller
 
     // 2. Instance Management
 
-    /**
-     * Display a listing of running instances.
-     */
     public function running()
     {
         $runningInstances = Instance::where('status', 'running')->get();
@@ -178,13 +149,11 @@ class InstanceController extends Controller
 
     public function getStatus(Instance $instance)
     {
-    return response()->json([
-        'status' => $instance->status,
-    ]);
+        return response()->json([
+            'status' => $instance->status,
+        ]);
     }
-    /**
-     * Start the specified instance.
-     */
+
     public function start(Request $request, Instance $instance)
     {
         Log::info("Instance start method called for instance: {$instance->id}");
@@ -195,15 +164,12 @@ class InstanceController extends Controller
         $outputFile = $repoPath . '/output.log';
         $pidFile = $repoPath . '/process.pid';
     
-        // Append the start trigger message with timestamp
         $startMessage = "[" . now()->format('d/m/y H:i') . "] CONSOLE: System trigger start\n";
         $this->storeLog($instance, $startMessage);
     
-        // Build the full start command with setsid to create a new session and process group
         $command = 'setsid ' . $venvPath . 'python ' . $repoPath . '/' . $startCommand . ' >> ' . $outputFile . ' 2>&1 & echo $!';
         Log::info('Starting process', ['command' => $command]);
     
-        // Run the process and capture the PID
         try {
             $process = Process::fromShellCommandline($command);
             $process->run();
@@ -216,12 +182,11 @@ class InstanceController extends Controller
                     file_put_contents($pidFile, $pid);
                     Log::info('PID file created successfully', ['pid_file' => $pidFile, 'pid' => $pid]);
     
-                    // Save the PID to the database
                     $instance->pid = $pid;
                     $instance->status = 'running';
+                    $instance->start_time = now();
                     $instance->save();
-
-                    // Start capturing CPU and memory usage
+    
                     $this->captureMetrics($instance);
     
                     return response()->json(['status' => 'success', 'message' => 'Instance started successfully.', 'instance' => $instance]);
@@ -241,44 +206,31 @@ class InstanceController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Failed to start the instance: ' . $exception->getMessage()], 500);
         }
     }
-
-    /**
-     * Stop the specified instance.
-     */
+    
     public function stop(Request $request, Instance $instance)
     {
         Log::info("Instance stop method called for instance: {$instance->id}");
-        Log::info('Effective User ID in stop method: ' . posix_geteuid()); // Log the user ID
-        
         $repoPath = base_path('instances/' . $instance->id);
-        $outputFile = $repoPath . '/output.log';
         $pidFile = $repoPath . '/process.pid';
-        
-        // Append the stop trigger message with timestamp
+    
         $stopMessage = "[" . now()->format('d/m/y H:i') . "] CONSOLE: System trigger stop\n";
         $this->storeLog($instance, $stopMessage);
-        
-        // Logic to stop the script
+    
         if ($instance->pid) {
             $pid = $instance->pid;
-        
-            // Check if the process is running
+    
             $commandCheck = 'ps -p ' . $pid;
             $checkProcess = Process::fromShellCommandline($commandCheck);
             $checkProcess->run();
-        
-            Log::info("Checking process status", ['pid' => $pid, 'is_running' => $checkProcess->isSuccessful()]);
-        
+    
             if ($checkProcess->isSuccessful()) {
-                // Attempt to stop the process group
                 $command = 'kill -- -' . $pid;
                 Log::info('Stopping process group', ['command' => $command]);
-        
+    
                 try {
                     $process = Process::fromShellCommandline($command);
                     $process->run();
     
-                    // Check if the process was successfully killed
                     $commandCheckAgain = 'ps -p ' . $pid;
                     $checkProcessAgain = Process::fromShellCommandline($commandCheckAgain);
                     $checkProcessAgain->run();
@@ -286,7 +238,6 @@ class InstanceController extends Controller
                     if (!$checkProcessAgain->isSuccessful()) {
                         Log::info('Process group stopped successfully');
                     } else {
-                        Log::warning('Process still running after kill attempt');
                         throw new ProcessFailedException($process);
                     }
                 } catch (ProcessFailedException $exception) {
@@ -297,42 +248,35 @@ class InstanceController extends Controller
                     ]);
                     return response()->json(['status' => 'error', 'message' => 'Failed to stop the instance: ' . $exception->getMessage()], 500);
                 }
-                
+    
                 if (File::exists($pidFile)) {
                     File::delete($pidFile);
                     Log::info('PID file deleted successfully', ['pid_file' => $pidFile]);
                 }
-        
-                // Clear the PID in the database
+    
                 $instance->pid = null;
                 $instance->status = 'stopped';
+                $instance->start_time = null;
                 $instance->save();
-        
+    
                 return response()->json(['status' => 'success', 'message' => 'Instance stopped successfully.', 'instance' => $instance]);
             } else {
-                Log::warning('No such process found', ['pid' => $pid]);
-        
-                // Clear the PID in the database since the process is not running
                 $instance->pid = null;
                 $instance->status = 'stopped';
+                $instance->start_time = null;
                 $instance->save();
-        
+    
                 return response()->json(['status' => 'success', 'message' => 'Instance status updated to stopped as the process was not running.', 'instance' => $instance]);
             }
         } else {
-            Log::warning('PID not found in database for instance', ['instance_id' => $instance->id]);
-        
-            // Update instance status to stopped since the PID is missing
             $instance->status = 'stopped';
+            $instance->start_time = null;
             $instance->save();
-        
+    
             return response()->json(['status' => 'error', 'message' => 'Failed to stop the instance: PID not found.'], 500);
         }
     }
-
-    /**
-     * Restart the specified instance.
-     */
+    
     public function restart(Request $request, Instance $instance)
     {
         Log::info("Instance restart method called for instance: {$instance->id}");
@@ -345,9 +289,6 @@ class InstanceController extends Controller
         return $this->start($request, $instance);
     }
 
-    /**
-     * Display the instance output.
-     */
     public function output(Instance $instance)
     {
         $outputFile = base_path('instances/' . $instance->id . '/output.log');
@@ -362,9 +303,6 @@ class InstanceController extends Controller
 
     // 3. File Operations
 
-    /**
-     * List files for the specified instance.
-     */
     public function listFiles(Instance $instance, Request $request)
     {
         $instancePath = base_path('instances/' . $instance->id);
@@ -386,12 +324,9 @@ class InstanceController extends Controller
             }
         });
     
-        return view('instances.partials.file-browser', compact('instance', 'files', 'currentPath', 'sortBy', 'sortOrder'));
+        return view('instances.partials.file-browser-tab', compact('instance', 'files', 'currentPath', 'sortBy', 'sortOrder'));
     }
 
-    /**
-     * View the content of a file.
-     */
     public function viewFile(Instance $instance, Request $request)
     {
         $filePath = $request->input('file');
@@ -405,9 +340,6 @@ class InstanceController extends Controller
         return response()->json(['content' => $content]);
     }
 
-    /**
-     * Update the content of a file.
-     */
     public function updateFile(Instance $instance, Request $request)
     {
         $filePath = $request->input('file');
@@ -422,9 +354,6 @@ class InstanceController extends Controller
         return response()->json(['message' => 'File updated successfully.']);
     }
 
-    /**
-     * Display the file editor.
-     */
     public function fileEditor(Request $request, Instance $instance)
     {
         $filePath = $request->input('file');
@@ -436,9 +365,6 @@ class InstanceController extends Controller
 
     // 4. Environment Variables
 
-    /**
-     * Get the environment variables for the specified instance.
-     */
     public function getEnv(Instance $instance)
     {
         $envFilePath = base_path('instances/' . $instance->id . '/.env');
@@ -453,9 +379,6 @@ class InstanceController extends Controller
         return view('instances.show', compact('instance', 'envContent'));
     }
 
-    /**
-     * Update the environment variables for the specified instance.
-     */
     public function updateEnv(Request $request, Instance $instance)
     {
         $envData = $request->input('env');
@@ -480,9 +403,6 @@ class InstanceController extends Controller
 
     // 5. Notes Management
 
-    /**
-     * Store a new note for the specified instance.
-     */
     public function storeNote(Request $request, Instance $instance)
     {
         $validated = $request->validate([
@@ -502,22 +422,26 @@ class InstanceController extends Controller
         ]);
     }
 
-    /**
-     * Delete a note.
-     */
-    public function destroyNote(Note $note)
+    public function destroyNote($instanceId, Note $note)
     {
-        if ($note->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        // Ensure the note belongs to the instance
+        if ($note->instance_id !== (int) $instanceId) {
+            return response()->json(['error' => 'Unauthorized'], 403);
         }
-
-        $note->delete();
-        return response()->json(['message' => 'Note deleted successfully']);
+    
+        // Ensure the user is authorized to delete the note
+        if (auth()->id() !== $note->user_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+    
+        try {
+            $note->delete();
+            return response()->json(['message' => 'Note deleted successfully.'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to delete note.'], 500);
+        }
     }
 
-    /**
-     * Get notes for the specified instance.
-     */
     public function getNotes(Instance $instance)
     {
         $notes = $instance->notes()
@@ -530,25 +454,23 @@ class InstanceController extends Controller
 
     // 6. Metrics and Logging
 
-    /**
-     * Capture metrics for the specified instance.
-     */
     public function captureMetrics($instance)
     {
         $repoPath = base_path('instances/' . $instance->id);
         $metricsFile = $repoPath . '/metrics.log';
         $pidFile = $repoPath . '/process.pid';
-    
+        $tmuxOutputFile = $repoPath . '/output.log';
+
         if (file_exists($pidFile)) {
             $pid = file_get_contents($pidFile);
             $command = "ps -p $pid -o %cpu,%mem,etime --no-headers";
             $metricsCommand = Process::fromShellCommandline($command);
             $metricsCommand->run();
-    
+
             if ($metricsCommand->isSuccessful()) {
-                $output = $metricsCommand->getOutput();
-                $output = "[" . now()->format('Y-m-d H:i:s') . "] " . trim($output) . "\n";
-                file_put_contents($metricsFile, $output, FILE_APPEND);
+                $output = trim($metricsCommand->getOutput());
+                $formattedOutput = "[" . now()->format('Y-m-d H:i:s') . "] " . $output . "\n";
+                file_put_contents($metricsFile, $formattedOutput, FILE_APPEND);
                 $this->limitLines($metricsFile, 100); // Limit to 100 lines
             } else {
                 Log::error('Failed to capture metrics', [
@@ -556,26 +478,46 @@ class InstanceController extends Controller
                 ]);
             }
         }
+
+        // Read from tmux output file
+        if (file_exists($tmuxOutputFile)) {
+            $this->broadcastNewOutput($instance, $tmuxOutputFile);
+        }
     }
-    
-    /**
-     * Get metrics for the specified instance.
-     */
+
+    private function broadcastNewOutput($instance, $filePath)
+    {
+        clearstatcache(false, $filePath);
+        $fileSize = filesize($filePath);
+
+        if ($fileSize > $this->lastReadOffset) {
+            $file = fopen($filePath, 'r');
+            fseek($file, $this->lastReadOffset);
+
+            while ($line = fgets($file)) {
+                broadcast(new ConsoleOutputUpdated($instance->id, $line));
+            }
+
+            $this->lastReadOffset = ftell($file);
+            fclose($file);
+        }
+    }
+
     public function getMetrics(Instance $instance)
     {
         if ($instance->status !== 'running') {
             return response()->json([
                 'cpu' => [],
                 'memory' => [],
-                'uptime' => '0:00.00'
+                'uptime' => '0:00:00'
             ]);
         }
     
         $metricsFile = base_path('instances/' . $instance->id . '/metrics.log');
         $metricsData = [
-            'cpu' => [0],
-            'memory' => [0],
-            'uptime' => '0:00.00'
+            'cpu' => [],
+            'memory' => [],
+            'uptime' => '0:00:00'
         ];
     
         if (file_exists($metricsFile)) {
@@ -587,9 +529,17 @@ class InstanceController extends Controller
                 if (count($matches) === 5) {
                     $metricsData['cpu'][] = (float) $matches[2];
                     $metricsData['memory'][] = (float) $matches[3];
-                    $metricsData['uptime'] = $matches[4]; // This will be overwritten each time, keeping the latest
                 }
             }
+        }
+    
+        // Calculate uptime
+        if ($instance->start_time) {
+            $startTime = Carbon::parse($instance->start_time);
+            $currentTime = now();
+            $uptime = $currentTime->diff($startTime);
+    
+            $metricsData['uptime'] = sprintf('%02d:%02d:%02d', $uptime->h, $uptime->i, $uptime->s);
         }
     
         return response()->json($metricsData);
@@ -597,17 +547,11 @@ class InstanceController extends Controller
 
     // 7. Repository Operations
 
-    /**
-     * Show the update page for the specified instance.
-     */
     public function showUpdatePage(Instance $instance)
     {
         return view('instances.update', compact('instance'));
     }
 
-    /**
-     * Check for updates for the specified instance.
-     */
     public function checkUpdates(Request $request, Instance $instance)
     {
         $repoPath = base_path('instances/' . $instance->id);
@@ -636,29 +580,143 @@ class InstanceController extends Controller
         }
     }
 
-    /**
-     * Confirm and apply updates for the specified instance.
-     */
     public function confirmUpdates(Request $request, Instance $instance)
     {
         $repoPath = base_path('instances/' . $instance->id);
+        $venvPath = $repoPath . '/venv/bin/';
+        $requirementsFile = $repoPath . '/requirements.txt';
+        $backupPath = base_path('instances/' . $instance->id . '/backup_' . now()->format('YmdHis'));
 
-        // Pull the latest updates
-        $process = new Process(['git', 'pull'], $repoPath);
-        $process->run();
+        try {
+            // Create backup folder
+            if (!File::exists($backupPath)) {
+                File::makeDirectory($backupPath, 0755, true);
+            }
 
-        if ($process->isSuccessful()) {
-            return response()->json(['status' => 'success', 'message' => 'Updates pulled successfully.']);
-        } else {
-            return response()->json(['status' => 'error', 'message' => 'Failed to pull updates.']);
+            // Move all files except .env and backup directories to the backup folder
+            foreach (File::files($repoPath) as $file) {
+                if (basename($file) !== '.env') {
+                    File::move($file, $backupPath . '/' . basename($file));
+                }
+            }
+
+            foreach (File::directories($repoPath) as $directory) {
+                $dirName = basename($directory);
+                if ($dirName !== 'venv' && strpos($dirName, 'backup_') !== 0) {
+                    File::moveDirectory($directory, $backupPath . '/' . $dirName);
+                }
+            }
+
+            // Fetch the latest updates from GitHub
+            $fetchProcess = new Process(['git', 'fetch', '--all'], $repoPath);
+            $fetchProcess->run();
+
+            if (!$fetchProcess->isSuccessful()) {
+                throw new \Exception('Failed to fetch updates: ' . $fetchProcess->getErrorOutput());
+            }
+
+            // Reset to the latest version from the main branch
+            $resetProcess = new Process(['git', 'reset', '--hard', 'origin/main'], $repoPath);
+            $resetProcess->run();
+
+            if ($resetProcess->isSuccessful()) {
+                Log::info('Updates pulled and reset successfully for instance: ' . $instance->id);
+
+                // Check if requirements.txt exists and update the virtual environment
+                if (file_exists($requirementsFile)) {
+                    try {
+                        Log::info('Updating virtual environment for instance: ' . $instance->id);
+
+                        $updateProcess = new Process([$venvPath . 'pip', 'install', '-r', $requirementsFile]);
+                        $updateProcess->run();
+
+                        if ($updateProcess->isSuccessful()) {
+                            Log::info('Virtual environment updated successfully for instance: ' . $instance->id);
+                            return response()->json(['status' => 'success', 'message' => 'Updates pulled and dependencies installed successfully.']);
+                        } else {
+                            throw new ProcessFailedException($updateProcess);
+                        }
+                    } catch (ProcessFailedException $exception) {
+                        Log::error('Failed to update virtual environment for instance: ' . $instance->id, [
+                            'error' => $exception->getMessage(),
+                            'output' => $exception->getProcess()->getOutput(),
+                            'errorOutput' => $exception->getProcess()->getErrorOutput(),
+                        ]);
+                        return response()->json(['status' => 'error', 'message' => 'Updates pulled, but failed to install dependencies: ' . $exception->getMessage()], 500);
+                    }
+                }
+
+                return response()->json(['status' => 'success', 'message' => 'Updates pulled successfully.']);
+            } else {
+                throw new \Exception('Failed to reset to the latest version: ' . $resetProcess->getErrorOutput());
+            }
+        } catch (\Exception $e) {
+            Log::error('Error during update process for instance: ' . $instance->id, [
+                'message' => $e->getMessage()
+            ]);
+
+            // Rollback: Move files back from backup folder in case of any exception
+            foreach (File::files($backupPath) as $file) {
+                File::move($file, $repoPath . '/' . basename($file));
+            }
+            foreach (File::directories($backupPath) as $directory) {
+                File::moveDirectory($directory, $repoPath . '/' . basename($directory));
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Error during update process: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function rollback(Request $request, Instance $instance)
+    {
+        $repoPath = base_path('instances/' . $instance->id);
+        $backupPaths = glob(base_path('instances/' . $instance->id . '/backup_*'), GLOB_ONLYDIR);
+        
+        if (empty($backupPaths)) {
+            return response()->json(['status' => 'error', 'message' => 'No backup available for rollback.'], 500);
+        }
+
+        // Get the latest backup
+        usort($backupPaths, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+        $latestBackupPath = $backupPaths[0];
+
+        try {
+            // Clear current instance directory except for .env and venv
+            foreach (File::files($repoPath) as $file) {
+                if (basename($file) !== '.env') {
+                    File::delete($file);
+                }
+            }
+
+            foreach (File::directories($repoPath) as $directory) {
+                if (basename($directory) !== 'venv') {
+                    File::deleteDirectory($directory);
+                }
+            }
+
+            // Restore from the latest backup
+            foreach (File::files($latestBackupPath) as $file) {
+                File::move($file, $repoPath . '/' . basename($file));
+            }
+
+            foreach (File::directories($latestBackupPath) as $directory) {
+                File::moveDirectory($directory, $repoPath . '/' . basename($directory));
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Rollback completed successfully.']);
+        } catch (\Exception $e) {
+            Log::error('Error during rollback process for instance: ' . $instance->id, [
+                'message' => $e->getMessage()
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Error during rollback process: ' . $e->getMessage()], 500);
         }
     }
 
     // 8. Helper Methods
 
-    /**
-     * Clone the repository for the specified instance.
-     */
     private function cloneRepository(Instance $instance)
     {
         Log::info('cloneRepository called', ['instance' => $instance]);
@@ -697,9 +755,6 @@ class InstanceController extends Controller
         }
     }
 
-    /**
-     * Delete a directory and its contents.
-     */
     private function deleteDirectory($dir)
     {
         if (!file_exists($dir)) {
@@ -725,9 +780,6 @@ class InstanceController extends Controller
         return rmdir($dir);
     }
 
-    /**
-     * Get files in a directory.
-     */
     private function getFiles($dir)
     {
         $files = [];
@@ -749,9 +801,6 @@ class InstanceController extends Controller
         return $files;
     }
 
-    /**
-     * Get a file property for sorting.
-     */
     private function getFileProperty($file, $property)
     {
         switch ($property) {
@@ -768,9 +817,6 @@ class InstanceController extends Controller
         }
     }
 
-    /**
-     * Limit the number of lines in a file.
-     */
     private function limitLines($filePath, $maxLines)
     {
         $lines = file($filePath, FILE_IGNORE_NEW_LINES);
@@ -781,29 +827,23 @@ class InstanceController extends Controller
         }
     }
 
-    /**
-     * Store a log entry for the specified instance.
-     */
     private function storeLog(Instance $instance, $logEntry)
     {
         $logFile = base_path('instances/' . $instance->id . '/output.log');
         $archiveFolder = base_path($this->archiveFolder . $instance->id);
-
-        // Ensure the archive folder exists
+    
         if (!File::exists($archiveFolder)) {
             File::makeDirectory($archiveFolder, 0755, true);
         }
-
-        // Rotate log if needed
+    
         $this->rotateLog($logFile, $archiveFolder);
-
-        // Append log entry
+    
         File::append($logFile, $logEntry . PHP_EOL);
+    
+        // Broadcast the log entry
+        broadcast(new ConsoleOutputUpdated($instance->id, $logEntry));
     }
 
-    /**
-     * Rotate the log file if it exceeds the line limit.
-     */
     private function rotateLog($logFile, $archiveFolder)
     {
         if (File::exists($logFile)) {
@@ -822,9 +862,6 @@ class InstanceController extends Controller
         }
     }
 
-    /**
-     * Compress old log files if the number of archived files exceeds the limit.
-     */
     private function compressOldLogs($archiveFolder)
     {
         $logFiles = File::files($archiveFolder);

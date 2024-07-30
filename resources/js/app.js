@@ -1,10 +1,13 @@
 // resources/js/app.js
 
-import { createApp } from 'vue';
+// Example: resources/js/app.js
+// app.js
+import 'bootstrap';
 
-
-
-const app = createApp({});
-
-
-app.mount('#app');
+Echo.private(`instance.${instanceId}`)
+    .listen('ConsoleOutputUpdated', (e) => {
+        console.log(e.output);
+        // Append the output to the console display
+        const consoleDisplay = document.getElementById('console-display');
+        consoleDisplay.innerHTML += `<p>${e.output}</p>`;
+    });
