@@ -3,7 +3,6 @@
 namespace App\Helpers;
 
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 
 class UpdateHelper
 {

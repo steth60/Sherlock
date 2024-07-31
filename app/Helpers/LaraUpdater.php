@@ -4,6 +4,7 @@ namespace App\Helpers;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
 use App\Models\Log;
 
 class LaraUpdater
@@ -72,17 +73,65 @@ class LaraUpdater
         
         if ($response->successful()) {
             file_put_contents(storage_path('app/update.zip'), $response->body());
+            \Log::info('Update downloaded successfully');
         } else {
+            \Log::error('Failed to download update from GitHub', ['response' => $response->body()]);
             throw new \Exception('Failed to download update from GitHub.');
         }
     }
 
     protected function applyUpdate()
     {
-        // Extract and apply update logic
         $zipFile = storage_path('app/update.zip');
-        $extractPath = base_path();
-        
+        $extractPath = storage_path('app/update_temp'); // Temporary extraction path
+
+        // Extract the ZIP file to a temporary location
         UpdateHelper::extract($zipFile, $extractPath);
+        \Log::info('Update extracted successfully', ['extractPath' => $extractPath]);
+
+        // Move the contents of the subfolder to the root directory
+        $subfolderName = 'Sherlock-main'; // Name of the subfolder inside the ZIP
+        $subfolderPath = $extractPath . '/' . $subfolderName;
+
+        // Ensure the subfolder exists
+        if (!is_dir($subfolderPath)) {
+            \Log::error('Subfolder not found in the extracted contents', ['subfolderPath' => $subfolderPath]);
+            throw new \Exception('Subfolder not found in the extracted contents.');
+        }
+
+        // Move contents from the subfolder to the root
+        $this->moveDirectoryContents($subfolderPath, base_path());
+        \Log::info('Update applied successfully');
+
+        // Clean up temporary files
+        File::deleteDirectory($extractPath);
+        File::delete($zipFile);
+    }
+
+    /**
+     * Move the contents of a directory to another directory.
+     *
+     * @param string $from
+     * @param string $to
+     * @return void
+     */
+    protected function moveDirectoryContents($from, $to)
+    {
+        $files = File::allFiles($from);
+        $directories = File::directories($from);
+
+        // Move all files
+        foreach ($files as $file) {
+            $destinationPath = $to . '/' . $file->getRelativePathname();
+            File::move($file->getRealPath(), $destinationPath);
+            \Log::info('Moved file', ['from' => $file->getRealPath(), 'to' => $destinationPath]);
+        }
+
+        // Move all directories
+        foreach ($directories as $directory) {
+            $destinationPath = $to . '/' . File::basename($directory);
+            File::moveDirectory($directory, $destinationPath);
+            \Log::info('Moved directory', ['from' => $directory, 'to' => $destinationPath]);
+        }
     }
 }
