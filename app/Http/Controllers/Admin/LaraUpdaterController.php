@@ -30,13 +30,19 @@ class LaraUpdaterController extends Controller
         return redirect()->back()->with('updateAvailable', $updateAvailable);
     }
 
-    public function install()
+    public function install(Request $request)
     {
+        $options = [
+            'reseed' => $request->has('reseed'),
+            'clear_cache' => $request->has('clear_cache')
+        ];
+
         try {
-            $this->updater->installUpdate();
-            return redirect()->back()->with('status', 'Update installed successfully.');
+            $this->updater->installUpdate($options);
+            return redirect()->route('admin.update.index')->with('status', 'Update installed successfully.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            Log::error('Error installing update', ['error' => $e->getMessage()]);
+            return redirect()->route('admin.update.index')->with('error', $e->getMessage());
         }
     }
 

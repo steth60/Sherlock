@@ -6,23 +6,65 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
 use App\Models\Log;
+use App\Events\UpdateProgress;
 
 class LaraUpdater
 {
-    public function installUpdate()
-    {
-        $this->backupExistingFiles();
-        $this->downloadUpdate();
-        $this->applyUpdate();
-        Artisan::call('migrate', ['--force' => true]);
+    protected $versionFile;
 
-        // Log the update
-        Log::create(['date' => now(), 'message' => 'Update installed successfully.']);
+    public function __construct()
+    {
+        $this->versionFile = base_path('version.txt');
+    }
+
+    public function installUpdate($options = [])
+    {
+        $this->broadcastProgress('Starting update...');
+        $this->backupExistingFiles();
+        $this->broadcastProgress('Backup completed.');
+        
+        $this->downloadUpdate();
+        $this->broadcastProgress('Download completed.');
+        
+        $this->applyUpdate();
+        $this->broadcastProgress('Update applied.');
+        
+        Artisan::call('migrate', ['--force' => true]);
+        $this->broadcastProgress('Database migrated.');
+
+        if (!empty($options['reseed'])) {
+            Artisan::call('system:reseed');
+            $this->broadcastProgress('Database reseeded.');
+        }
+
+        if (!empty($options['clear_cache'])) {
+            Artisan::call('config:clear');
+            Artisan::call('route:clear');
+            Artisan::call('view:clear');
+            Artisan::call('cache:clear');
+            $this->broadcastProgress('Caches cleared.');
+        }
+
+        $latestVersion = $this->fetchLatestVersion();
+        $this->setCurrentVersion($latestVersion);
+
+        Log::create(['date' => now(), 'message' => 'Update installed successfully to version ' . $latestVersion]);
+        $this->broadcastProgress('Update installed successfully.');
+    }
+
+    protected function broadcastProgress($message)
+    {
+        broadcast(new UpdateProgress($message));
     }
 
     public function getCurrentVersion()
     {
-        return config('app.version');
+        return trim(File::get($this->versionFile));
+    }
+
+    public function setCurrentVersion($version)
+    {
+        File::put($this->versionFile, $version);
     }
 
     public function checkForUpdate()
@@ -33,7 +75,7 @@ class LaraUpdater
         return version_compare($currentVersion, $latestVersion, '<');
     }
 
-    public function fetchLatestVersion() // Change visibility to public
+    public function fetchLatestVersion()
     {
         $repository = config('laraupdater.repository');
         $url = "https://api.github.com/repos/{$repository}/releases/latest";
