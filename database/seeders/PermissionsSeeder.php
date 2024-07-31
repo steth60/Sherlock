@@ -4,30 +4,43 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Permission;
+use Illuminate\Support\Facades\DB;
 
 class PermissionsSeeder extends Seeder
 {
     public function run()
     {
+        // First, let's truncate the permissions table and reset the ID counter
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Permission::truncate();
+        DB::statement('ALTER TABLE permissions AUTO_INCREMENT = 1;');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $permissions = [
             // Dashboard
             'Dashboard' => null,
-            'View-dashboard' => 'Dashboard',
+            'view_dashboard' => 'Dashboard',
+
+            // Service Desk Tools
+            'Service Desk Tools' => null,
+            'view_service_desk_tools' => 'Service Desk Tools',
+            'view_ticket_management' => 'Service Desk Tools',
+            'manage_instances' => 'Service Desk Tools',
 
             // Instances
             'Instances' => null,
-            'View-Instance-page' => 'Instances',
-            'Create-Instance' => 'Instances',
-            'Edit-Instances' => 'Instances',
-            'Delete-Instance' => 'Instances',
-            'Update-Instance' => 'Instances',
-            'Start-Instance' => 'Instances',
-            'Stop-Instances' => 'Instances',
+            'view_instance_page' => 'Instances',
+            'create_instance' => 'Instances',
+            'edit_instance' => 'Instances',
+            'delete_instance' => 'Instances',
+            'update_instance' => 'Instances',
+            'start_instance' => 'Instances',
+            'stop_instance' => 'Instances',
             'restart_instance' => 'Instances',
-            'View-Instance-files' => 'Instances',
-            'Edit-Instance-files' => 'Instances',
-            'View-Instance-notes' => 'Instances',
-            'Create-Instance-notes' => 'Instances',
+            'view_instance_files' => 'Instances',
+            'edit_instance_files' => 'Instances',
+            'view_instance_notes' => 'Instances',
+            'create_instance_notes' => 'Instances',
             'view_instance_output' => 'Instances',
             'view_instance_status' => 'Instances',
             'view_instance_env' => 'Instances',
@@ -36,30 +49,32 @@ class PermissionsSeeder extends Seeder
             'check_instance_updates' => 'Instances',
             'confirm_instance_updates' => 'Instances',
 
-            // App Contents
-            'App Contents' => null,
-            'View-app-contents' => 'App Contents',
-            'View-python-instances' => 'App Contents',
-            'View-docker-instances' => 'App Contents',
-            'View-vm-instances' => 'App Contents',
+            // Projects
+            'Projects' => null,
+            'view_projects' => 'Projects',
+            'create_project' => 'Projects',
 
-            // Tasks
-            'Tasks' => null,
-            'View-tasks' => 'Tasks',
-            'View-tasks-dashboard' => 'Tasks',
-            'View-tasks-task' => 'Tasks',
+            // Holidays
+            'Holidays' => null,
+            'view_holidays' => 'Holidays',
+            'manage_holidays' => 'Holidays',
 
-            // Service Desk Tools
-            'Service Desk Tools' => null,
-            'View-service-desk-tools' => 'Service Desk Tools',
-            'View-ticket-management' => 'Service Desk Tools',
-            'View-task-project' => 'Service Desk Tools',
+            // Knowledge Base
+            'Knowledge Base' => null,
+            'view_knowledge_base' => 'Knowledge Base',
+            'manage_knowledge_base' => 'Knowledge Base',
+
+            // Tools
+            'Tools' => null,
+            'view_tools' => 'Tools',
+            'use_file_converter' => 'Tools',
+            'use_code_formatter' => 'Tools',
 
             // User Settings
             'User Settings' => null,
-            'View-settings' => 'User Settings',
-            'View-personal-information' => 'User Settings',
-            'View-account-settings' => 'User Settings',
+            'manage_settings' => 'User Settings',
+            'view_personal_information' => 'User Settings',
+            'view_account_settings' => 'User Settings',
             'manage_personal_info' => 'User Settings',
             'change_email' => 'User Settings',
             'change_password' => 'User Settings',
@@ -77,22 +92,13 @@ class PermissionsSeeder extends Seeder
             'view_unverified_email_users' => 'Admin',
             'view_mfa_not_enabled_users' => 'Admin',
             'force_password_change' => 'Admin',
-
-            // Admin Tools
-            'Admin Tools' => null,
-            'View-admin' => 'Admin Tools',
-            'View-user-management' => 'Admin Tools',
-            'View-group-management' => 'Admin Tools',
-            'View-nav-menu' => 'Admin Tools',
-            'View-maintain-mode' => 'Admin Tools',
-            'View-update' => 'Admin Tools',
+            'manage_nav_menu' => 'Admin',
+            'manage_system_updates' => 'Admin',
 
             // System
             'System' => null,
             'view_menu' => 'System',
             'manage_schedules' => 'System',
-            'manage_settings' => 'System',
-            'manage_nav_menu' => 'System',
         ];
 
         $permissionIds = [];

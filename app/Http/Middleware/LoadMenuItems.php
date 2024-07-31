@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use App\Models\MenuItem;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Log;
 
 class LoadMenuItems
@@ -13,31 +14,41 @@ class LoadMenuItems
     {
         if (Auth::check()) {
             $user = Auth::user();
-            $userPermissions = $user->groups->load('permissions')->pluck('permissions.*.name')->flatten()->unique();
-           // Log::info('User Permissions:', $userPermissions->toArray());
+            
+            $menuItems = MenuItem::with(['children' => function ($query) {
+                $query->orderBy('order');
+            }])
+            ->whereNull('parent_id')
+            ->orderBy('order')
+            ->get();
 
-            $menuItems = MenuItem::whereNull('parent_id')
-                ->orderBy('order')
-                ->get()
-                ->filter(function ($menuItem) use ($user) {
-                    $hasPermission = $user->hasPermission($menuItem->permission);
-                    // Log::info('Checking permission for menu item', ['menuItem' => $menuItem->title, 'hasPermission' => $hasPermission]);
-                    return $hasPermission;
+            $filteredMenuItems = $menuItems->filter(function ($menuItem) use ($user) {
+                // Check if the user has permission for the parent item
+                $hasParentPermission = empty($menuItem->permission) || $user->hasPermission($menuItem->permission);
+                
+                // If it's a single button (has permission and no children), only show if user has permission
+                if ($menuItem->children->isEmpty() && !empty($menuItem->permission)) {
+                    return $hasParentPermission;
+                }
+                
+                // Filter children based on permissions
+                $visibleChildren = $menuItem->children->filter(function ($child) use ($user) {
+                    return empty($child->permission) || $user->hasPermission($child->permission);
                 });
 
-            foreach ($menuItems as $menuItem) {
-                $menuItem->children = MenuItem::where('parent_id', $menuItem->id)
-                    ->orderBy('order')
-                    ->get()
-                    ->filter(function ($subMenuItem) use ($user) {
-                        $hasPermission = $user->hasPermission($subMenuItem->permission);
-                        // Log::info('Checking permission for sub-menu item', ['subMenuItem' => $subMenuItem->title, 'hasPermission' => $hasPermission]);
-                        return $hasPermission;
-                    });
-            }
+                // For items with children, keep if:
+                // 1. User has permission for the parent item and it has visible children
+                // 2. User doesn't have permission for the parent item but it has visible children
+                return ($hasParentPermission && $visibleChildren->isNotEmpty()) ||
+                       (!$hasParentPermission && $visibleChildren->isNotEmpty());
+            });
 
-           // Log::info('Menu items loaded', ['menuItems' => $menuItems]);
-            view()->share('menuItems', $menuItems);
+            // Log the filtered menu items for debugging
+            Log::info('Filtered Menu Items: ' . json_encode($filteredMenuItems->pluck('title')));
+
+            View::share('menuItems', $filteredMenuItems);
+        } else {
+            View::share('menuItems', collect([]));
         }
 
         return $next($request);

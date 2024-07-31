@@ -116,14 +116,19 @@ public function sendEmailVerificationNotification()
         return $this->belongsToMany(Group::class);
     }
 
-    // Method to check if a user has a specific permission
     public function hasPermission($permission)
     {
+        if (empty($permission)) {
+            return true; // Assume items with no permission are visible to all
+        }
+        $result = false;
         foreach ($this->groups as $group) {
             if ($group->permissions->contains('name', $permission)) {
-                return true;
+                $result = true;
+                break;
             }
         }
-        return false;
+        \Log::info("Checking permission: $permission for user {$this->id}. Result: " . ($result ? 'true' : 'false'));
+        return $result;
     }
 }

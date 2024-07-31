@@ -181,14 +181,7 @@
                 order.push(el.getAttribute('data-id'));
             });
 
-            fetch("{{ route('admin.groups.reorder') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ order: order })
-            });
+
         }
     });
 

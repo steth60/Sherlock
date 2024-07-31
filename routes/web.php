@@ -167,7 +167,9 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
         });
     });
     
-    
+    Route::get('admin/menu-items', [App\Http\Controllers\Admin\MenuController::class, 'menuItems'])->name('admin.menu-items');
+    Route::get('admin/user-permissions', [App\Http\Controllers\Admin\MenuController::class, 'userPermissions'])->name('admin.user-permissions');
+
     // Settings Routes
 
 Route::middleware('permission:manage_settings')->group(function () {
@@ -228,7 +230,23 @@ Route::middleware('permission:manage_settings')->group(function () {
 });
 
     
-    
+        // Projects
+Route::resource('projects', ProjectController::class);
+
+// Holidays
+Route::get('/holiday', [HolidayController::class, 'index'])->name('holiday.index');
+Route::get('/holiday/calendar', [HolidayController::class, 'calendar'])->name('holiday.calendar');
+
+// Knowledge Base
+Route::prefix('kb')->name('kb.')->group(function () {
+    Route::resource('articles', KnowledgeBaseArticleController::class);
+    Route::resource('categories', KnowledgeBaseCategoryController::class);
+});
+
+// Tools
+Route::get('/tools/file-converter', [ToolsController::class, 'fileConverter'])->name('tools.file-converter');
+Route::get('/tools/code-formatter', [ToolsController::class, 'codeFormatter'])->name('tools.code-formatter');
+
         // Theme Settings
         Route::post('settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.updateTheme');
 

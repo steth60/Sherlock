@@ -18,29 +18,52 @@
               <li class="nav-item pcoded-menu-caption">
                   <label>Navigation</label>
               </li>
-                <ul class="nav pcoded-inner-navbar" id="sidebar-menu">
-                    @if(isset($menuItems))
-                        @foreach($menuItems as $menuItem)
-                            <li class="nav-item pcoded-hasmenu">
-                                <a href="{{ $menuItem->url }}" class="nav-link" data-toggle="collapse" data-target="#{{ Str::slug($menuItem->title) }}" aria-expanded="false" aria-controls="{{ Str::slug($menuItem->title) }}">
-                                    <span class="pcoded-micon"><i class="{{ $menuItem->icon }}"></i></span>
-                                    <span class="pcoded-mtext">{{ $menuItem->title }}</span>
-                                </a>
-                                @if($menuItem->children->count())
-                                    <ul class="pcoded-submenu collapse" id="{{ Str::slug($menuItem->title) }}" data-parent="#sidebar-menu">
-                                        @foreach($menuItem->children as $subMenuItem)
-                                            <li>
-                                                <a href="{{ $subMenuItem->url }}" class="nav-link">
-                                                    <span class="pcoded-mtext">{{ $subMenuItem->title }}</span>
-                                                </a>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
-                            </li>
-                        @endforeach
-                    @endif
-                </ul>
+              @if($menuItems->isNotEmpty())
+              <ul class="nav pcoded-inner-navbar" id="sidebar-menu">
+                  @foreach($menuItems as $menuItem)
+                      @php
+                          $url = Str::startsWith($menuItem->url, 'route:') 
+                              ? route(Str::after($menuItem->url, 'route:')) 
+                              : $menuItem->url;
+                      @endphp
+                      @if($menuItem->children->isEmpty())
+                          <li class="nav-item" data-username="{{ Str::slug($menuItem->title) }}">
+                              <a href="{{ $url }}" class="nav-link">
+                                  @if($menuItem->icon)
+                                      <span class="pcoded-micon"><i class="{{ $menuItem->icon }}"></i></span>
+                                  @endif
+                                  <span class="pcoded-mtext">{{ $menuItem->title }}</span>
+                              </a>
+                          </li>
+                      @else
+                          <li class="nav-item pcoded-hasmenu">
+                              <a href="{{ $url }}" class="nav-link dropdown-toggle" data-toggle="collapse" data-target="#menu-{{ $menuItem->id }}" aria-expanded="false" aria-controls="menu-{{ $menuItem->id }}">
+                                  @if($menuItem->icon)
+                                      <span class="pcoded-micon"><i class="{{ $menuItem->icon }}"></i></span>
+                                  @endif
+                                  <span class="pcoded-mtext">{{ $menuItem->title }}</span>
+                              </a>
+                              <ul class="pcoded-submenu collapse" id="menu-{{ $menuItem->id }}" data-parent="#sidebar-menu">
+                                  @foreach($menuItem->children as $child)
+                                      @if(empty($child->permission) || auth()->user()->hasPermission($child->permission))
+                                          @php
+                                              $childUrl = Str::startsWith($child->url, 'route:') 
+                                                  ? route(Str::after($child->url, 'route:')) 
+                                                  : $child->url;
+                                          @endphp
+                                          <li>
+                                              <a href="{{ $childUrl }}" class="nav-link">
+                                                  <span class="pcoded-mtext">{{ $child->title }}</span>
+                                              </a>
+                                          </li>
+                                      @endif
+                                  @endforeach
+                              </ul>
+                          </li>
+                      @endif
+                  @endforeach
+              </ul>
+          @endif
             </div>
         </div>
     </div>
