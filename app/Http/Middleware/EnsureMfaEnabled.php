@@ -20,9 +20,12 @@ class EnsureMfaEnabled
             if ($user->two_factor_email_enabled) {
                 return redirect()->route('two-factor.challenge.email');
             }
+            if ($user->webauthnCredentials()->exists()) {
+                return redirect()->route('two-factor.challenge.webauthn');
+            }
         }
 
-        if ($user && !$user->google2fa_secret && !$user->two_factor_email_enabled) {
+        if ($user && !$user->google2fa_secret && !$user->two_factor_email_enabled && !$user->webauthnCredentials()->exists()) {
             return redirect()->route('two-factor.setup');
         }
 

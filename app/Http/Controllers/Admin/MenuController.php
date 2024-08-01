@@ -72,13 +72,27 @@ class MenuController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'url' => 'required|string|max:255',
+            'url' => 'required_if:is_dropdown,false|string|max:255',
             'icon' => 'nullable|string|max:255',
             'parent_id' => 'nullable|integer',
             'permission' => 'nullable|string|max:255',
+            'is_dropdown' => 'boolean',
         ]);
-
-        MenuItem::create($request->all());
+    
+        // Get the maximum order value
+        $maxOrder = MenuItem::max('order') ?? 0;
+    
+        // Prepare the data
+        $data = $request->all();
+        if ($request->input('is_dropdown', false)) {
+            $data['url'] = '#';
+        }
+    
+        // Create the new menu item with the next order value
+        $menuItem = new MenuItem($data);
+        $menuItem->order = $maxOrder + 1;
+        $menuItem->save();
+    
         return response()->json(['success' => true]);
     }
 
@@ -107,11 +121,9 @@ class MenuController extends Controller
 
     public function reorder(Request $request)
     {
-        $menuOrder = $request->input('order');
-        foreach ($menuOrder as $index => $id) {
-            $menuItem = MenuItem::find($id);
-            $menuItem->order = $index + 1;
-            $menuItem->save();
+        $order = $request->input('order');
+        foreach ($order as $index => $itemId) {
+            MenuItem::where('id', $itemId)->update(['order' => $index + 1]);
         }
         return response()->json(['success' => true]);
     }

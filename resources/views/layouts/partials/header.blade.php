@@ -1,7 +1,7 @@
 <header class="navbar pcoded-header navbar-expand-lg navbar-light">
     <div class="m-header">
         <a class="mobile-menu" id="mobile-collapse1" href="javascript:void(0)"><span></span></a>
-        <a href="{{ url('/') }}" class="b-brand">
+        <a href="{{ route('home') }}" class="b-brand">
             <div class="b-bg">
                 <i class="feather icon-trending-up"></i>
             </div>
@@ -13,15 +13,6 @@
     </a>
     <div class="collapse navbar-collapse">
         <ul class="navbar-nav me-auto">
-            <li><a href="javascript:void(0)" class="full-screen" onclick="javascript:toggleFullScreen()"><i class="feather icon-maximize"></i></a></li>
-            <li class="nav-item dropdown">
-                <a class="dropdown-toggle" href="javascript:void(0)" data-bs-toggle="dropdown">Dropdown</a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="javascript:void(0)">Action</a></li>
-                    <li><a class="dropdown-item" href="javascript:void(0)">Another action</a></li>
-                    <li><a class="dropdown-item" href="javascript:void(0)">Something else here</a></li>
-                </ul>
-            </li>
             <li class="nav-item">
                 <div class="main-search">
                     <div class="input-group">

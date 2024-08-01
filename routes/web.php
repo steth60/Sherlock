@@ -1,7 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\MfaController;
+use App\Http\Controllers\Auth\{
+    MfaController, 
+    InstanceContTrustedDeviceControllerroller, 
+    WebauthnController
+};
 use App\Http\Controllers\Instance\{
     DashboardController, 
     InstanceController, 
@@ -83,26 +87,25 @@ Route::group(['middleware' => config('fortify.middleware', ['web', 'checkMaintai
 
 
 // MFA Setup Routes (should be protected)
-Route::group(['middleware' => config('fortify.middleware', ['web', 'auth'])], function () {
-    Route::get('two-factor/setup', [MfaController::class, 'showSetupForm'])->name('two-factor.setup');
-    Route::prefix('two-factor')->name('two-factor.')->group(function () {
-        Route::get('setup/totp', [MfaController::class, 'showTotpSetupForm'])->name('setup.totp');
-        Route::get('setup/email', [MfaController::class, 'showEmailSetupForm'])->name('setup.email');
-        Route::post('setup', [MfaController::class, 'setupMfa'])->name('setup.post');
-    });
+Route::middleware('auth')->group(function () {
+    Route::get('/two-factor/setup', [MfaController::class, 'showSetupForm'])->name('two-factor.setup');
+    Route::get('/two-factor/setup/totp', [MfaController::class, 'showTotpSetupForm'])->name('two-factor.setup.totp');
+    Route::get('/two-factor/setup/email', [MfaController::class, 'showEmailSetupForm'])->name('two-factor.setup.email');
+    Route::get('/two-factor/setup/webauthn', [MfaController::class, 'showWebauthnSetupForm'])->name('two-factor.setup.webauthn');
+    Route::post('/two-factor/setup/webauthn', [MfaController::class, 'setupWebauthn'])->name('two-factor.setup.webauthn.post');
 });
 
+
 // MFA Challenge Routes (should be accessible during authentication)
-Route::group(['middleware' => ['web']], function () {
-    Route::prefix('two-factor')->name('two-factor.')->group(function () {
-        Route::get('challenge/totp', [MfaController::class, 'showChallenge'])->name('challenge.totp');
-        Route::post('challenge/totp/verify', [MfaController::class, 'verifyChallenge'])->name('challenge.totp.verify');
-        
-        Route::post('challenge/email/send', [MfaController::class, 'sendEmailMfaCode'])->name('challenge.email.send');
-        Route::get('challenge/email', [MfaController::class, 'showEmailChallenge'])->name('challenge.email');
-        Route::post('challenge/email/verify', [MfaController::class, 'verifyEmailMfaCode'])->name('challenge.email.verify');
-    });
+Route::middleware('auth')->group(function () {
+    Route::get('/two-factor/challenge', [MfaController::class, 'showChallenge'])->name('two-factor.challenge');
+    Route::get('/two-factor/challenge/totp', [MfaController::class, 'showTotpChallenge'])->name('two-factor.challenge.totp');
+    Route::get('/two-factor/challenge/email', [MfaController::class, 'showEmailChallenge'])->name('two-factor.challenge.email');
+    Route::get('/two-factor/challenge/webauthn', [MfaController::class, 'showWebauthnChallenge'])->name('two-factor.challenge.webauthn');
+    Route::post('/two-factor/challenge/webauthn', [MfaController::class, 'verifyWebauthn'])->name('two-factor.challenge.webauthn.post');
 });
+
+
 
 Route::get('/user/two-factor-recovery-codes', [MfaController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes');
 
@@ -281,7 +284,7 @@ Route::get('/tools/code-formatter', [ToolsController::class, 'codeFormatter'])->
         Route::put('{menuItem}', [MenuController::class, 'update'])->name('nav.update');
         Route::delete('{menuItem}', [MenuController::class, 'destroy'])->name('nav.destroy');
         Route::post('reorder', [MenuController::class, 'reorder'])->name('menu.reorder');
-
+           
 
         Route::post('/invite', [AdminDashboardController::class, 'invite'])->name('invite');
         Route::post('/resend-invite/{id}', [AdminDashboardController::class, 'resendInvite'])->name('resend-invite');

@@ -12,15 +12,27 @@ use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Writer;
 use App\Models\User;
 use App\Models\TrustedDevice;
+use App\Models\WebauthnCredential;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Mail\EmailMfaCode;
+use lbuchs\WebAuthn\WebAuthn;
+use lbuchs\WebAuthn\WebAuthnException;
 
 class MfaController extends Controller
 {
+    protected $webauthn;
+
+    public function __construct()
+    {
+        $rpName = config('webauthn.rp.name', 'My Application');
+        $rpId = config('webauthn.rp.id', 'example.com');
+        $this->webauthn = new WebAuthn($rpName, $rpId);
+    }
+
     public function showSetupForm(Request $request)
     {
         return view('auth.mfa-setup');
@@ -241,25 +253,153 @@ class MfaController extends Controller
 
     public function showEmailChallenge(Request $request)
     {
-    $user = $request->user();
-    $key = 'email_mfa_send:' . $user->id;
+        $user = $request->user();
+        $key = 'email_mfa_send:' . $user->id;
 
-    // If it's the first attempt after login, clear the rate limiter
-    if (!$request->session()->has('mfa_challenge_started')) {
-        RateLimiter::clear($key);
-        $request->session()->put('mfa_challenge_started', true);
+        // If it's the first attempt after login, clear the rate limiter
+        if (!$request->session()->has('mfa_challenge_started')) {
+            RateLimiter::clear($key);
+            $request->session()->put('mfa_challenge_started', true);
+        }
+
+        $retryAfter = RateLimiter::availableIn($key);
+
+        if ($retryAfter === 0) {
+            $this->sendNewMfaCode($user);
+            RateLimiter::hit($key, 30); // 5 minutes
+            $retryAfter = 30;
+        }
+
+        return view('auth.email-mfa-challenge', [
+            'retryAfter' => $retryAfter
+        ]);
     }
 
-    $retryAfter = RateLimiter::availableIn($key);
-
-    if ($retryAfter === 0) {
-        $this->sendNewMfaCode($user);
-        RateLimiter::hit($key, 30); // 5 minutes
-        $retryAfter = 30;
+    // WebAuthn Methods
+    public function showWebauthnSetupForm(Request $request)
+    {
+        $user = $request->user();
+        $webAuthn = new WebAuthn(
+            config('app.name'),
+            request()->getHost(),
+            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
+        );
+    
+        $createArgs = $webAuthn->getCreateArgs(
+            $user->id,
+            $user->email,
+            $user->name,
+            60,
+            false,
+            'preferred',
+            null,
+            $user->webauthnCredentials->pluck('credential_id')->toArray()
+        );
+    
+        // Encode binary data to base64
+        $createArgs->publicKey->challenge = base64_encode($createArgs->publicKey->challenge);
+        $createArgs->publicKey->user->id = base64_encode($createArgs->publicKey->user->id);
+        if (isset($createArgs->publicKey->excludeCredentials)) {
+            foreach ($createArgs->publicKey->excludeCredentials as &$credential) {
+                $credential->id = base64_encode($credential->id);
+            }
+        }
+    
+        $request->session()->put('webauthnChallenge', $webAuthn->getChallenge());
+    
+        return view('auth.webauthn-setup', [
+            'createArgs' => json_encode($createArgs)
+        ]);
     }
 
-    return view('auth.email-mfa-challenge', [
-        'retryAfter' => $retryAfter
-    ]);
-}
+    public function setupWebauthn(Request $request)
+    {
+        $user = $request->user();
+        $webAuthn = new WebAuthn(
+            config('app.name'),
+            request()->getHost(),
+            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
+        );
+
+        try {
+            $data = $webAuthn->processCreate(
+                $request->input('clientDataJSON'),
+                $request->input('attestationObject'),
+                session('webauthnChallenge'),
+                false,
+                true,
+                false
+            );
+
+            WebauthnCredential::create([
+                'user_id' => $user->id,
+                'credential_id' => $data->credentialId,
+                'public_key' => $data->credentialPublicKey,
+                'type' => $data->attestationFormat,
+                'counter' => $data->signatureCounter,
+            ]);
+
+            return redirect()->route('two-factor.recovery-codes')->with('status', 'WebAuthn setup complete');
+        } catch (\Exception $e) {
+            return back()->withErrors(['webauthn' => $e->getMessage()]);
+        }
+    }
+
+    public function showWebauthnChallenge(Request $request)
+    {
+        $user = $request->user();
+        $webAuthn = new WebAuthn(
+            config('app.name'),
+            request()->getHost(),
+            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
+        );
+
+        $getArgs = $webAuthn->getGetArgs(
+            $user->webauthnCredentials->pluck('credential_id')->toArray()
+        );
+
+        $request->session()->put('webauthnChallenge', $webAuthn->getChallenge());
+
+        return view('auth.webauthn-challenge', [
+            'getArgs' => json_encode($getArgs)
+        ]);
+    }
+
+
+    public function verifyWebauthn(Request $request)
+    {
+        $user = $request->user();
+        $webAuthn = new WebAuthn(
+            config('app.name'),
+            request()->getHost(),
+            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
+        );
+
+        try {
+            $credential = $user->webauthnCredentials()->where('credential_id', $request->input('id'))->firstOrFail();
+
+            $result = $webAuthn->processGet(
+                $request->input('clientDataJSON'),
+                $request->input('authenticatorData'),
+                $request->input('signature'),
+                $credential->public_key,
+                session('webauthnChallenge'),
+                $credential->counter,
+                false,
+                true
+            );
+
+            if ($result) {
+                $credential->counter = $webAuthn->getSignatureCounter();
+                $credential->save();
+
+                $request->session()->put('auth.2fa.verified', true);
+                return redirect()->intended(config('fortify.home'))->with('status', 'WebAuthn authentication successful');
+            }
+        } catch (\Exception $e) {
+            return back()->withErrors(['webauthn' => $e->getMessage()]);
+        }
+
+        return back()->withErrors(['webauthn' => 'WebAuthn authentication failed']);
+    }
 }

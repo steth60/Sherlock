@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use Webauthn\PublicKeyCredentialSource;
+use App\Models\WebauthnCredential;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -52,6 +54,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasVerifiedMfa()
     {
         return !is_null($this->two_factor_confirmed_at);
+    }
+
+    public function webauthnCredentials()
+    {
+        return $this->hasMany(WebauthnCredential::class);
     }
 
     public function passwordHistories()

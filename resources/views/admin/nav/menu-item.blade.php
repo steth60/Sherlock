@@ -18,7 +18,7 @@
         </div>
     </div>
     @if($menuItem->children->isNotEmpty())
-        <div class="card-footer p-0">
+        <div class="card-footer">
             <div class="pl-4">
                 @foreach($menuItem->children as $childItem)
                     @include('admin.nav.menu-item', ['menuItem' => $childItem, 'depth' => $depth + 1])

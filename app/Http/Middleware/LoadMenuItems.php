@@ -44,7 +44,7 @@ class LoadMenuItems
             });
 
             // Log the filtered menu items for debugging
-            Log::info('Filtered Menu Items: ' . json_encode($filteredMenuItems->pluck('title')));
+            //Log::info('Filtered Menu Items: ' . json_encode($filteredMenuItems->pluck('title')));
 
             View::share('menuItems', $filteredMenuItems);
         } else {

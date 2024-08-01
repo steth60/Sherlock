@@ -16,6 +16,9 @@
                         <li class="mb-3">
                             <a href="{{ route('two-factor.setup.email') }}" class="btn btn-primary btn-block">Setup Email MFA</a>
                         </li>
+                        <li class="mb-3">
+                            <a href="{{ route('two-factor.setup.webauthn') }}" class="btn btn-primary btn-block">Setup WebAuthn</a>
+                        </li>
                     </ul>
                 </div>
             </div>
