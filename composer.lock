@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e7a1ab62bec5701adec9d553545b8a83",
+    "content-hash": "407e5235ea4a4acf0c4b825bc1d502ad",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1290,6 +1290,159 @@
             "time": "2020-06-13T08:05:20+00:00"
         },
         {
+            "name": "laragear/meta-model",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Laragear/MetaModel.git",
+                "reference": "86aa8bbd0e1b9d03467a0257f0cd5815b6836a34"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Laragear/MetaModel/zipball/86aa8bbd0e1b9d03467a0257f0cd5815b6836a34",
+                "reference": "86aa8bbd0e1b9d03467a0257f0cd5815b6836a34",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "10.*|11.*",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.6",
+                "phpunit/phpunit": "^10.5|11.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Laragear\\MetaModel\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Italo Israel Baeza Cabrera",
+                    "email": "DarkGhostHunter@Gmail.com",
+                    "homepage": "https://github.com/sponsors/DarkGhostHunter",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Let other developers customize your package model and migrations",
+            "keywords": [
+                "database",
+                "eloquent",
+                "laravel",
+                "model"
+            ],
+            "support": {
+                "issues": "https://github.com/Laragear/MetaModel/issues",
+                "source": "https://github.com/Laragear/MetaModel"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/DarkGhostHunter",
+                    "type": "Github Sponsorship"
+                },
+                {
+                    "url": "https://paypal.me/darkghosthunter",
+                    "type": "Paypal"
+                }
+            ],
+            "time": "2024-03-15T23:27:56+00:00"
+        },
+        {
+            "name": "laragear/webauthn",
+            "version": "v3.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Laragear/WebAuthn.git",
+                "reference": "208df5d1a8b0a1a4c4ba1a91bb4a1010c42086df"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Laragear/WebAuthn/zipball/208df5d1a8b0a1a4c4ba1a91bb4a1010c42086df",
+                "reference": "208df5d1a8b0a1a4c4ba1a91bb4a1010c42086df",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-openssl": "*",
+                "illuminate/auth": "10.*|11.*",
+                "illuminate/config": "10.*|11.*",
+                "illuminate/database": "10.*|11.*",
+                "illuminate/encryption": "10.*|11.*",
+                "illuminate/http": "10.*|11.*",
+                "illuminate/session": "10.*|11.*",
+                "illuminate/support": "10.*|11.*",
+                "laragear/meta-model": "^1.1",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "ext-sodium": "*",
+                "orchestra/testbench": "8.*|9.*"
+            },
+            "suggest": {
+                "paragonie/sodium_compat": "To enable EdDSA 25519 keys from authenticators, if `ext-sodium` is unavailable."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Laragear\\WebAuthn\\WebAuthnServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Laragear\\WebAuthn\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lukas Buchs",
+                    "role": "Original developer"
+                },
+                {
+                    "name": "Italo Israel Baeza Cabrera",
+                    "email": "DarkGhostHunter@Gmail.com",
+                    "homepage": "https://github.com/sponsors/DarkGhostHunter",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Authenticate users with Passkeys: fingerprints, patterns and biometric data.",
+            "homepage": "https://github.com/laragear/webauthn",
+            "keywords": [
+                "Authentication",
+                "faceid",
+                "laravel",
+                "passkeys",
+                "touchid",
+                "webauthn",
+                "windows hello"
+            ],
+            "support": {
+                "issues": "https://github.com/Laragear/WebAuthn/issues",
+                "source": "https://github.com/Laragear/WebAuthn"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/DarkGhostHunter",
+                    "type": "Github Sponsorship"
+                },
+                {
+                    "url": "https://paypal.me/darkghosthunter",
+                    "type": "Paypal"
+                }
+            ],
+            "time": "2024-07-28T21:06:19+00:00"
+        },
+        {
             "name": "laravel/fortify",
             "version": "v1.21.4",
             "source": {
@@ -1806,51 +1959,6 @@
                 "source": "https://github.com/laravel/ui/tree/v4.5.2"
             },
             "time": "2024-05-08T18:07:10+00:00"
-        },
-        {
-            "name": "lbuchs/webauthn",
-            "version": "v2.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/lbuchs/WebAuthn.git",
-                "reference": "20adb4a240c3997bd8cac7dc4dde38ab0bea0ed1"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/lbuchs/WebAuthn/zipball/20adb4a240c3997bd8cac7dc4dde38ab0bea0ed1",
-                "reference": "20adb4a240c3997bd8cac7dc4dde38ab0bea0ed1",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.0.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "lbuchs\\WebAuthn\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Lukas Buchs",
-                    "role": "Developer"
-                }
-            ],
-            "description": "A simple PHP WebAuthn (FIDO2) server library",
-            "homepage": "https://github.com/lbuchs/webauthn",
-            "keywords": [
-                "Authentication",
-                "webauthn"
-            ],
-            "support": {
-                "issues": "https://github.com/lbuchs/WebAuthn/issues",
-                "source": "https://github.com/lbuchs/WebAuthn/tree/v2.2.0"
-            },
-            "time": "2024-07-04T07:17:40+00:00"
         },
         {
             "name": "league/commonmark",
@@ -4122,6 +4230,117 @@
                 }
             ],
             "time": "2024-06-22T23:04:52+00:00"
+        },
+        {
+            "name": "spomky-labs/pki-framework",
+            "version": "1.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Spomky-Labs/pki-framework.git",
+                "reference": "0b10c8b53366729417d6226ae89a665f9e2d61b6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Spomky-Labs/pki-framework/zipball/0b10c8b53366729417d6226ae89a665f9e2d61b6",
+                "reference": "0b10c8b53366729417d6226ae89a665f9e2d61b6",
+                "shasum": ""
+            },
+            "require": {
+                "brick/math": "^0.10|^0.11|^0.12",
+                "ext-mbstring": "*",
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "ekino/phpstan-banned-code": "^1.0",
+                "ext-gmp": "*",
+                "ext-openssl": "*",
+                "infection/infection": "^0.28",
+                "php-parallel-lint/php-parallel-lint": "^1.3",
+                "phpstan/extension-installer": "^1.3",
+                "phpstan/phpstan": "^1.8",
+                "phpstan/phpstan-beberlei-assert": "^1.0",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.1",
+                "phpstan/phpstan-strict-rules": "^1.3",
+                "phpunit/phpunit": "^10.1|^11.0",
+                "rector/rector": "^1.0",
+                "roave/security-advisories": "dev-latest",
+                "symfony/phpunit-bridge": "^6.4|^7.0",
+                "symfony/string": "^6.4|^7.0",
+                "symfony/var-dumper": "^6.4|^7.0",
+                "symplify/easy-coding-standard": "^12.0"
+            },
+            "suggest": {
+                "ext-bcmath": "For better performance (or GMP)",
+                "ext-gmp": "For better performance (or BCMath)",
+                "ext-openssl": "For OpenSSL based cyphering"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SpomkyLabs\\Pki\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Joni Eskelinen",
+                    "email": "jonieske@gmail.com",
+                    "role": "Original developer"
+                },
+                {
+                    "name": "Florent Morselli",
+                    "email": "florent.morselli@spomky-labs.com",
+                    "role": "Spomky-Labs PKI Framework developer"
+                }
+            ],
+            "description": "A PHP framework for managing Public Key Infrastructures. It comprises X.509 public key certificates, attribute certificates, certification requests and certification path validation.",
+            "homepage": "https://github.com/spomky-labs/pki-framework",
+            "keywords": [
+                "DER",
+                "Private Key",
+                "ac",
+                "algorithm identifier",
+                "asn.1",
+                "asn1",
+                "attribute certificate",
+                "certificate",
+                "certification request",
+                "cryptography",
+                "csr",
+                "decrypt",
+                "ec",
+                "encrypt",
+                "pem",
+                "pkcs",
+                "public key",
+                "rsa",
+                "sign",
+                "signature",
+                "verify",
+                "x.509",
+                "x.690",
+                "x509",
+                "x690"
+            ],
+            "support": {
+                "issues": "https://github.com/Spomky-Labs/pki-framework/issues",
+                "source": "https://github.com/Spomky-Labs/pki-framework/tree/1.2.1"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/Spomky",
+                    "type": "github"
+                },
+                {
+                    "url": "https://www.patreon.com/FlorentMorselli",
+                    "type": "patreon"
+                }
+            ],
+            "time": "2024-03-30T18:03:49+00:00"
         },
         {
             "name": "symfony/clock",
@@ -6633,6 +6852,88 @@
                 }
             ],
             "time": "2022-03-08T17:03:00+00:00"
+        },
+        {
+            "name": "web-auth/cose-lib",
+            "version": "4.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/web-auth/cose-lib.git",
+                "reference": "2166016e48e0214f4f63320a7758a9386d14c92a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/web-auth/cose-lib/zipball/2166016e48e0214f4f63320a7758a9386d14c92a",
+                "reference": "2166016e48e0214f4f63320a7758a9386d14c92a",
+                "shasum": ""
+            },
+            "require": {
+                "brick/math": "^0.9|^0.10|^0.11|^0.12",
+                "ext-json": "*",
+                "ext-openssl": "*",
+                "php": ">=8.1",
+                "spomky-labs/pki-framework": "^1.0"
+            },
+            "require-dev": {
+                "ekino/phpstan-banned-code": "^1.0",
+                "infection/infection": "^0.29",
+                "php-parallel-lint/php-parallel-lint": "^1.3",
+                "phpstan/extension-installer": "^1.3",
+                "phpstan/phpstan": "^1.7",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.1",
+                "phpstan/phpstan-strict-rules": "^1.2",
+                "phpunit/phpunit": "^10.1|^11.0",
+                "qossmic/deptrac": "^2.0",
+                "rector/rector": "^1.0",
+                "symfony/phpunit-bridge": "^6.4|^7.0",
+                "symplify/easy-coding-standard": "^12.0"
+            },
+            "suggest": {
+                "ext-bcmath": "For better performance, please install either GMP (recommended) or BCMath extension",
+                "ext-gmp": "For better performance, please install either GMP (recommended) or BCMath extension"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Cose\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Florent Morselli",
+                    "homepage": "https://github.com/Spomky"
+                },
+                {
+                    "name": "All contributors",
+                    "homepage": "https://github.com/web-auth/cose/contributors"
+                }
+            ],
+            "description": "CBOR Object Signing and Encryption (COSE) For PHP",
+            "homepage": "https://github.com/web-auth",
+            "keywords": [
+                "COSE",
+                "RFC8152"
+            ],
+            "support": {
+                "issues": "https://github.com/web-auth/cose-lib/issues",
+                "source": "https://github.com/web-auth/cose-lib/tree/4.4.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/Spomky",
+                    "type": "github"
+                },
+                {
+                    "url": "https://www.patreon.com/FlorentMorselli",
+                    "type": "patreon"
+                }
+            ],
+            "time": "2024-07-18T08:47:32+00:00"
         },
         {
             "name": "webmozart/assert",

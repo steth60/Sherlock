@@ -9,17 +9,18 @@
         "bacon/bacon-qr-code": "^3.0",
         "dragonmantank/cron-expression": "^3.3",
         "jenssegers/agent": "^2.6",
+        "laragear/webauthn": "^3.0",
         "laravel/fortify": "^1.21",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.5",
-        "lbuchs/webauthn": "^2.2",
         "league/flysystem": "^3.28",
         "nesbot/carbon": "^3.6",
         "pragmarx/google2fa-laravel": "^2.2",
         "pusher/pusher-php-server": "^7.2",
         "spatie/laravel-permission": "^6.9",
-        "symfony/process": "^7.1"
+        "symfony/process": "^7.1",
+        "web-auth/cose-lib": "^4.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

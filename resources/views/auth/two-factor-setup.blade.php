@@ -3,9 +3,7 @@
 @section('title', 'Setup Two-Factor Authentication')
 
 @section('content')
-<div class="mb-4">
-    <i class="feather icon-shield auth-icon"></i>
-</div>
+
 <h3 class="mb-4">Setup Two-Factor Authentication</h3>
 
 @if (session('recovery_codes'))

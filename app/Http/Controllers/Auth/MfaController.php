@@ -19,23 +19,23 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Mail\EmailMfaCode;
-use lbuchs\WebAuthn\WebAuthn;
-use lbuchs\WebAuthn\WebAuthnException;
+use Laragear\WebAuthn\WebAuthn;
+
 
 class MfaController extends Controller
 {
     protected $webauthn;
 
-    public function __construct()
+    public function __construct(WebAuthn $webauthn)
     {
-        $rpName = config('webauthn.rp.name', 'My Application');
-        $rpId = config('webauthn.rp.id', 'example.com');
-        $this->webauthn = new WebAuthn($rpName, $rpId);
+        $this->webauthn = $webauthn;
     }
 
     public function showSetupForm(Request $request)
     {
-        return view('auth.mfa-setup');
+        return view('auth.mfa-setup', [
+            'hasWebAuthn' => $request->user()->webAuthnCredentials()->exists(),
+        ]);
     }
 
     public function showTotpSetupForm(Request $request)
@@ -275,131 +275,47 @@ class MfaController extends Controller
         ]);
     }
 
-    // WebAuthn Methods
+
+
+
+    //Webauthn
     public function showWebauthnSetupForm(Request $request)
     {
-        $user = $request->user();
-        $webAuthn = new WebAuthn(
-            config('app.name'),
-            request()->getHost(),
-            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
-        );
-    
-        $createArgs = $webAuthn->getCreateArgs(
-            $user->id,
-            $user->email,
-            $user->name,
-            60,
-            false,
-            'preferred',
-            null,
-            $user->webauthnCredentials->pluck('credential_id')->toArray()
-        );
-    
-        // Encode binary data to base64
-        $createArgs->publicKey->challenge = base64_encode($createArgs->publicKey->challenge);
-        $createArgs->publicKey->user->id = base64_encode($createArgs->publicKey->user->id);
-        if (isset($createArgs->publicKey->excludeCredentials)) {
-            foreach ($createArgs->publicKey->excludeCredentials as &$credential) {
-                $credential->id = base64_encode($credential->id);
-            }
-        }
-    
-        $request->session()->put('webauthnChallenge', $webAuthn->getChallenge());
-    
-        return view('auth.webauthn-setup', [
-            'createArgs' => json_encode($createArgs)
-        ]);
+        return view('auth.webauthn-setup');
     }
 
-    public function setupWebauthn(Request $request)
+    public function getWebauthnRegisterOptions(AttestationRequest $request)
     {
-        $user = $request->user();
-        $webAuthn = new WebAuthn(
-            config('app.name'),
-            request()->getHost(),
-            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
-        );
-
-        try {
-            $data = $webAuthn->processCreate(
-                $request->input('clientDataJSON'),
-                $request->input('attestationObject'),
-                session('webauthnChallenge'),
-                false,
-                true,
-                false
-            );
-
-            WebauthnCredential::create([
-                'user_id' => $user->id,
-                'credential_id' => $data->credentialId,
-                'public_key' => $data->credentialPublicKey,
-                'type' => $data->attestationFormat,
-                'counter' => $data->signatureCounter,
-            ]);
-
-            return redirect()->route('two-factor.recovery-codes')->with('status', 'WebAuthn setup complete');
-        } catch (\Exception $e) {
-            return back()->withErrors(['webauthn' => $e->getMessage()]);
-        }
+        \Log::info('WebAuthn options requested', ['headers' => $request->headers->all()]);
+        return $request->toCreate();
     }
 
-    public function showWebauthnChallenge(Request $request)
+    public function registerWebauthn(AttestedRequest $request)
     {
-        $user = $request->user();
-        $webAuthn = new WebAuthn(
-            config('app.name'),
-            request()->getHost(),
-            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
-        );
-
-        $getArgs = $webAuthn->getGetArgs(
-            $user->webauthnCredentials->pluck('credential_id')->toArray()
-        );
-
-        $request->session()->put('webauthnChallenge', $webAuthn->getChallenge());
-
-        return view('auth.webauthn-challenge', [
-            'getArgs' => json_encode($getArgs)
-        ]);
+        \Log::info('WebAuthn registration attempted', ['data' => $request->all()]);
+        $request->save();
+        return response()->json(['message' => 'WebAuthn device registered successfully']);
     }
 
-
-    public function verifyWebauthn(Request $request)
+    public function showWebauthnChallenge()
     {
-        $user = $request->user();
-        $webAuthn = new WebAuthn(
-            config('app.name'),
-            request()->getHost(),
-            ['none', 'packed', 'tpm', 'android-key', 'android-safetynet', 'fido-u2f', 'apple']
-        );
+        return view('auth.webauthn-challenge');
+    }
 
-        try {
-            $credential = $user->webauthnCredentials()->where('credential_id', $request->input('id'))->firstOrFail();
+    public function getWebauthnLoginOptions(AssertionRequest $request)
+    {
+        return $request->toVerify();
+    }
 
-            $result = $webAuthn->processGet(
-                $request->input('clientDataJSON'),
-                $request->input('authenticatorData'),
-                $request->input('signature'),
-                $credential->public_key,
-                session('webauthnChallenge'),
-                $credential->counter,
-                false,
-                true
-            );
+    public function verifyWebauthn(AssertedRequest $request)
+    {
+        $user = $request->login();
 
-            if ($result) {
-                $credential->counter = $webAuthn->getSignatureCounter();
-                $credential->save();
-
-                $request->session()->put('auth.2fa.verified', true);
-                return redirect()->intended(config('fortify.home'))->with('status', 'WebAuthn authentication successful');
-            }
-        } catch (\Exception $e) {
-            return back()->withErrors(['webauthn' => $e->getMessage()]);
+        if ($user) {
+            $request->session()->put('auth.2fa.verified', true);
+            return response()->json(['message' => 'WebAuthn authentication successful']);
         }
 
-        return back()->withErrors(['webauthn' => 'WebAuthn authentication failed']);
+        return response()->json(['error' => 'WebAuthn authentication failed'], 400);
     }
 }

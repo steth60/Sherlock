@@ -1,10 +1,7 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
+
                 <div class="card-header">{{ __('Setup Email Multi-Factor Authentication') }}</div>
 
                 <div class="card-body">
@@ -34,10 +31,6 @@
                         </button>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

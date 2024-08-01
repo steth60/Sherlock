@@ -1,105 +1,50 @@
 @extends('layouts.auth')
 
-@section('title', 'Setup WebAuthn')
-
 @section('content')
-    <div>
-        <h3>Setup WebAuthn</h3>
-        <p>Follow the instructions to set up your security key.</p>
-        <button id="register">Register Security Key</button>
-        <div id="status"></div>
-        <div id="diagnostics"></div>
-    </div>
+<div class="container">
+    <h2>Setup WebAuthn</h2>
+    <button id="register">Register Security Key</button>
+    <div id="status"></div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const registerButton = document.getElementById('register');
-            const statusDiv = document.getElementById('status');
-            const diagnosticsDiv = document.getElementById('diagnostics');
-
-            function updateDiagnostics(message) {
-                diagnosticsDiv.innerHTML += message + '<br>';
+<script src="https://cdn.jsdelivr.net/npm/@laragear/webpass@2/dist/webpass.js" defer></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        document.getElementById('register').addEventListener('click', async function() {
+            const statusElement = document.getElementById('status');
+            statusElement.innerText = 'Initiating WebAuthn registration...';
+    
+            if (Webpass.isUnsupported()) {
+                statusElement.innerText = "Your browser doesn't support WebAuthn.";
+                return;
             }
-
-            updateDiagnostics('Browser: ' + navigator.userAgent);
-            updateDiagnostics('Protocol: ' + window.location.protocol);
-            updateDiagnostics('Host: ' + window.location.host);
-
-            if (window.isSecureContext === false) {
-                updateDiagnostics('WARNING: Not in a secure context. WebAuthn requires HTTPS or localhost.');
-            }
-
-            if (!window.PublicKeyCredential) {
-                updateDiagnostics('window.PublicKeyCredential is not available.');
-                statusDiv.textContent = 'WebAuthn is not supported in this browser. Please try a different browser.';
-                registerButton.disabled = true;
-            } else {
-                updateDiagnostics('window.PublicKeyCredential is available.');
-                PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                    .then((available) => {
-                        if (available) {
-                            updateDiagnostics('Platform authenticator is available.');
-                        } else {
-                            updateDiagnostics('Platform authenticator is not available.');
-                        }
-                    })
-                    .catch(error => {
-                        updateDiagnostics('Error checking platform authenticator: ' + error);
-                    });
-            }
-
-            registerButton.addEventListener('click', async function() {
-                try {
-                    let createArgs = {!! $createArgs !!};
-
-                    updateDiagnostics('CreateArgs received: ' + JSON.stringify(createArgs));
-
-                    createArgs.publicKey.challenge = Uint8Array.from(atob(createArgs.publicKey.challenge), c => c.charCodeAt(0));
-                    createArgs.publicKey.user.id = Uint8Array.from(atob(createArgs.publicKey.user.id), c => c.charCodeAt(0));
-                    if (createArgs.publicKey.excludeCredentials) {
-                        createArgs.publicKey.excludeCredentials = createArgs.publicKey.excludeCredentials.map(cred => {
-                            cred.id = Uint8Array.from(atob(cred.id), c => c.charCodeAt(0));
-                            return cred;
-                        });
-                    }
-
-                    updateDiagnostics('Calling navigator.credentials.create()');
-                    const credential = await navigator.credentials.create({ publicKey: createArgs.publicKey });
-
-                    updateDiagnostics('Credential created successfully');
-
-                    const attestationObject = btoa(String.fromCharCode.apply(null, new Uint8Array(credential.response.attestationObject)));
-                    const clientDataJSON = btoa(String.fromCharCode.apply(null, new Uint8Array(credential.response.clientDataJSON)));
-                    const rawId = btoa(String.fromCharCode.apply(null, new Uint8Array(credential.rawId)));
-
-                    updateDiagnostics('Sending data to server');
-                    const response = await fetch('{{ route('two-factor.setup.webauthn.post') }}', {
-                        method: 'POST',
+    
+            try {
+                const { success, error } = await Webpass.attest(
+                    "{{ route('two-factor.setup.webauthn.options') }}",
+                    "{{ route('two-factor.setup.webauthn.register') }}",
+                    {
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({
-                            id: credential.id,
-                            rawId: rawId,
-                            type: credential.type,
-                            attestationObject: attestationObject,
-                            clientDataJSON: clientDataJSON
-                        })
-                    });
-
-                    if (response.ok) {
-                        statusDiv.textContent = 'Registration successful';
-                    } else {
-                        const errorData = await response.json();
-                        statusDiv.textContent = 'Registration failed: ' + (errorData.message || 'Unknown error');
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     }
-                } catch (error) {
-                    console.error('Error:', error);
-                    statusDiv.textContent = 'Error: ' + (error.message || 'Unknown error occurred');
-                    updateDiagnostics('Error: ' + error.toString());
+                );
+    
+                if (error) {
+                    statusElement.innerText = 'Error: ' + error;
+                } else if (success) {
+                    statusElement.innerText = 'Registration successful';
+                    // Optionally redirect or perform other actions on success
+                    // window.location.replace("/dashboard");
                 }
-            });
+            } catch (error) {
+                console.error('WebAuthn Error:', error);
+                statusElement.innerText = 'Error: ' + (error.message || 'Unknown error occurred');
+            }
         });
+    });
     </script>
 @endsection

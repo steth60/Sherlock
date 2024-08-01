@@ -4,12 +4,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\{
     MfaController, 
     InstanceContTrustedDeviceControllerroller, 
-    WebauthnController
+    WebAuthnController,
 };
 use App\Http\Controllers\Instance\{
     DashboardController, 
     InstanceController, 
-    ScheduleController
+    ScheduleController,
 };
 use App\Http\Controllers\{
     SettingsController, 
@@ -30,7 +30,8 @@ use Laravel\Fortify\Http\Controllers\{
     AuthenticatedSessionController,
     RegisteredUserController,
     PasswordResetLinkController,
-    NewPasswordController
+    NewPasswordController,
+    
 };
 use Laravel\Fortify\Features;
 use Laravel\Fortify\RoutePath;
@@ -84,28 +85,39 @@ Route::group(['middleware' => config('fortify.middleware', ['web', 'checkMaintai
     }
 
   });
-
+  
 
 // MFA Setup Routes (should be protected)
-Route::middleware('auth')->group(function () {
-    Route::get('/two-factor/setup', [MfaController::class, 'showSetupForm'])->name('two-factor.setup');
-    Route::get('/two-factor/setup/totp', [MfaController::class, 'showTotpSetupForm'])->name('two-factor.setup.totp');
-    Route::get('/two-factor/setup/email', [MfaController::class, 'showEmailSetupForm'])->name('two-factor.setup.email');
-    Route::get('/two-factor/setup/webauthn', [MfaController::class, 'showWebauthnSetupForm'])->name('two-factor.setup.webauthn');
-    Route::post('/two-factor/setup/webauthn', [MfaController::class, 'setupWebauthn'])->name('two-factor.setup.webauthn.post');
-});
+Route::group(['middleware' => config('fortify.middleware', ['web', 'auth'])], function () {
+    Route::get('two-factor/setup', [MfaController::class, 'showSetupForm'])->name('two-factor.setup');
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        Route::get('setup/totp', [MfaController::class, 'showTotpSetupForm'])->name('setup.totp');
+        Route::get('setup/email', [MfaController::class, 'showEmailSetupForm'])->name('setup.email');
+        Route::post('setup', [MfaController::class, 'setupMfa'])->name('setup.post');
 
+        // WebAuthn Setup Routes
+        Route::get('setup/webauthn', [MfaController::class, 'showWebauthnSetupForm'])->name('setup.webauthn');
+        Route::post('setup/webauthn/options', [MfaController::class, 'getWebauthnRegisterOptions'])->name('setup.webauthn.options');
+        Route::post('setup/webauthn', [MfaController::class, 'registerWebauthn'])->name('setup.webauthn.register');
+    });
+});
 
 // MFA Challenge Routes (should be accessible during authentication)
-Route::middleware('auth')->group(function () {
-    Route::get('/two-factor/challenge', [MfaController::class, 'showChallenge'])->name('two-factor.challenge');
-    Route::get('/two-factor/challenge/totp', [MfaController::class, 'showTotpChallenge'])->name('two-factor.challenge.totp');
-    Route::get('/two-factor/challenge/email', [MfaController::class, 'showEmailChallenge'])->name('two-factor.challenge.email');
-    Route::get('/two-factor/challenge/webauthn', [MfaController::class, 'showWebauthnChallenge'])->name('two-factor.challenge.webauthn');
-    Route::post('/two-factor/challenge/webauthn', [MfaController::class, 'verifyWebauthn'])->name('two-factor.challenge.webauthn.post');
+Route::group(['middleware' => ['web']], function () {
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        Route::get('challenge/totp', [MfaController::class, 'showChallenge'])->name('challenge.totp');
+        Route::post('challenge/totp/verify', [MfaController::class, 'verifyChallenge'])->name('challenge.totp.verify');
+        
+        Route::post('challenge/email/send', [MfaController::class, 'sendEmailMfaCode'])->name('challenge.email.send');
+        Route::get('challenge/email', [MfaController::class, 'showEmailChallenge'])->name('challenge.email');
+        Route::post('challenge/email/verify', [MfaController::class, 'verifyEmailMfaCode'])->name('challenge.email.verify');
+
+        // WebAuthn Challenge Routes
+        Route::get('challenge/webauthn', [MfaController::class, 'showWebauthnChallenge'])->name('challenge.webauthn');
+        Route::post('challenge/webauthn/options', [MfaController::class, 'getWebauthnLoginOptions'])->name('challenge.webauthn.options');
+        Route::post('challenge/webauthn/verify', [MfaController::class, 'verifyWebauthn'])->name('challenge.webauthn.verify');
+    });
 });
-
-
 
 Route::get('/user/two-factor-recovery-codes', [MfaController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes');
 
@@ -157,8 +169,7 @@ Route::middleware(['auth', 'verified', 'mfa'])->group(function () {
             Route::post('/schedules/{schedule}/trigger-now', [ScheduleController::class, 'triggerNow']);
 
         });
-        Route::get('/holiday', [App\Http\Controllers\HolidayController::class, 'index'])->name('holiday.index');
-        Route::get('/holiday/calendar', [App\Http\Controllers\HolidayController::class, 'calendar'])->name('holiday.calendar');
+
         // Schedule Routes
         Route::prefix('schedules')->name('schedules.')->group(function () {
             Route::get('create', [ScheduleController::class, 'create'])->name('create');
@@ -234,21 +245,19 @@ Route::middleware('permission:manage_settings')->group(function () {
 
     
         // Projects
-Route::resource('projects', ProjectController::class);
+//Route::resource('projects', ProjectController::class);
 
-// Holidays
-Route::get('/holiday', [HolidayController::class, 'index'])->name('holiday.index');
-Route::get('/holiday/calendar', [HolidayController::class, 'calendar'])->name('holiday.calendar');
+
 
 // Knowledge Base
-Route::prefix('kb')->name('kb.')->group(function () {
-    Route::resource('articles', KnowledgeBaseArticleController::class);
-    Route::resource('categories', KnowledgeBaseCategoryController::class);
-});
+//Route::prefix('kb')->name('kb.')->group(function () {
+//    Route::resource('articles', KnowledgeBaseArticleController::class);
+//    Route::resource('categories', KnowledgeBaseCategoryController::class);
+//});
 
 // Tools
-Route::get('/tools/file-converter', [ToolsController::class, 'fileConverter'])->name('tools.file-converter');
-Route::get('/tools/code-formatter', [ToolsController::class, 'codeFormatter'])->name('tools.code-formatter');
+//Route::get('/tools/file-converter', [ToolsController::class, 'fileConverter'])->name('tools.file-converter');
+//Route::get('/tools/code-formatter', [ToolsController::class, 'codeFormatter'])->name('tools.code-formatter');
 
         // Theme Settings
         Route::post('settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.updateTheme');

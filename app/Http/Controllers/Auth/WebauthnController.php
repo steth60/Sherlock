@@ -3,78 +3,45 @@
 namespace App\Http\Controllers\Auth;
 
 use Illuminate\Http\Request;
-use Webauthn\PublicKeyCredentialCreationOptions;
-use Webauthn\PublicKeyCredentialRequestOptions;
-use Webauthn\Server;
-use Webauthn\PublicKeyCredentialUserEntity;
-use Webauthn\PublicKeyCredentialRpEntity;
-use Webauthn\AttestationStatement\AttestationObject;
-use Webauthn\AuthenticatorAttestationResponse;
-use Webauthn\AuthenticatorAssertionResponse;
-use Webauthn\PublicKeyCredentialLoader;
-use Webauthn\PublicKeyCredentialDescriptor;
+use Laragear\WebAuthn\Http\Requests\AttestedRequest;
+use Laragear\WebAuthn\Http\Requests\AttestationRequest;
+use Laragear\WebAuthn\Http\Requests\AssertedRequest;
+use Laragear\WebAuthn\Http\Requests\AssertionRequest;
 
-class WebauthnController extends Controller
+class WebAuthnController extends Controller
 {
-    protected $server;
-
-    public function __construct()
+    public function showSetupForm()
     {
-        $rpEntity = new PublicKeyCredentialRpEntity(config('webauthn.rp.name'), config('webauthn.rp.id'));
-        $this->server = new Server($rpEntity);
+        return view('auth.webauthn-setup');
     }
 
-    public function loginOptions(Request $request)
+    public function getRegisterOptions(AttestationRequest $request)
     {
-        $user = User::where('email', $request->email)->first(); // Modify to get the user by email or other identifier
-        $credentialDescriptors = $user->webauthnCredentials->map(function ($credential) {
-            return new PublicKeyCredentialDescriptor($credential->type, $credential->credential_id);
-        })->toArray();
-
-        $publicKeyCredentialRequestOptions = $this->server->generatePublicKeyCredentialRequestOptions(
-            config('webauthn.timeout'),
-            $credentialDescriptors
-        );
-
-        session(['publicKeyCredentialRequestOptions' => $publicKeyCredentialRequestOptions]);
-
-        return response()->json($publicKeyCredentialRequestOptions);
+        return $request->toCreate();
     }
 
-    public function login(Request $request)
+    public function register(AttestedRequest $request)
     {
-        $user = User::where('email', $request->email)->first(); // Modify to get the user by email or other identifier
-        $publicKeyCredentialRequestOptions = session('publicKeyCredentialRequestOptions');
+        $request->save();
+        return response()->json(['message' => 'WebAuthn setup complete']);
+    }
 
-        $authenticatorAssertionResponse = new AuthenticatorAssertionResponse(
-            base64_decode($request->input('authenticatorData')),
-            base64_decode($request->input('clientDataJSON')),
-            base64_decode($request->input('signature')),
-            base64_decode($request->input('userHandle'))
-        );
+    public function showChallenge()
+    {
+        return view('auth.webauthn-challenge');
+    }
 
-        $publicKeyCredentialLoader = new PublicKeyCredentialLoader();
-        $publicKeyCredential = $publicKeyCredentialLoader->loadArray([
-            'id' => $request->input('id'),
-            'rawId' => base64_decode($request->input('rawId')),
-            'type' => $request->input('type'),
-            'response' => [
-                'authenticatorData' => base64_decode($request->input('authenticatorData')),
-                'clientDataJSON' => base64_decode($request->input('clientDataJSON')),
-                'signature' => base64_decode($request->input('signature')),
-                'userHandle' => base64_decode($request->input('userHandle'))
-            ]
-        ]);
+    public function getLoginOptions(AssertionRequest $request)
+    {
+        return $request->toVerify();
+    }
 
-        $this->server->loadAndCheckAssertionResponse(
-            $authenticatorAssertionResponse,
-            $publicKeyCredentialRequestOptions,
-            $user->webauthnCredentials->toArray()
-        );
-
-        Auth::login($user);
-
-        return redirect()->intended(config('fortify.home'));
+    public function login(AssertedRequest $request)
+    {
+        if ($request->login()) {
+            $request->session()->put('auth.2fa.verified', true);
+            return response()->json(['message' => 'WebAuthn authentication successful']);
+        }
+        return response()->json(['error' => 'WebAuthn authentication failed'], 400);
     }
 }
-

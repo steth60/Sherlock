@@ -9,12 +9,15 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
-use Webauthn\PublicKeyCredentialSource;
-use App\Models\WebauthnCredential;
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
+use Laragear\WebAuthn\WebAuthnAuthentication;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, WebAuthnAuthenticatable
 {
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, WebAuthnAuthentication;
+
+
 
     protected $fillable = [
         'name',
@@ -56,10 +59,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return !is_null($this->two_factor_confirmed_at);
     }
 
-    public function webauthnCredentials()
+    public function webauthnCredentials(): MorphMany
     {
-        return $this->hasMany(WebauthnCredential::class);
+        return $this->morphMany(WebauthnCredential::class, 'authenticatable');
     }
+
 
     public function passwordHistories()
     {
@@ -138,4 +142,5 @@ public function sendEmailVerificationNotification()
         \Log::info("Checking permission: $permission for user {$this->id}. Result: " . ($result ? 'true' : 'false'));
         return $result;
     }
+
 }

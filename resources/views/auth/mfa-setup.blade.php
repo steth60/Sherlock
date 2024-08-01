@@ -1,10 +1,7 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
+
                 <div class="card-header">{{ __('Setup Multi-Factor Authentication') }}</div>
 
                 <div class="card-body">
@@ -17,12 +14,9 @@
                             <a href="{{ route('two-factor.setup.email') }}" class="btn btn-primary btn-block">Setup Email MFA</a>
                         </li>
                         <li class="mb-3">
-                            <a href="{{ route('two-factor.setup.webauthn') }}" class="btn btn-primary btn-block">Setup WebAuthn</a>
+                            <a href="{{ route('two-factor.setup.webauthn') }}" class="btn btn-primary">Setup WebAuthn</a>
                         </li>
                     </ul>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
+ 
 @endsection
